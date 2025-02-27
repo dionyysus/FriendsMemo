@@ -8,17 +8,16 @@
 import SwiftUI
 
 struct FriendsView: View {
-
     private let iconName = "person.circle"
     private let iconColor: Color = .black
-    private let numberOfFriends = 9
     
     @State private var isAddFriendModalPresented = false
-
+    @State private var friends: [Friend] = []  // Eklenen arkadaşları saklayan liste
+    
     var body: some View {
         NavigationView {
             VStack {
-                FriendsGrid(iconName: iconName, iconColor: iconColor, count: numberOfFriends)
+                FriendsGrid(friends: friends)  // Arkadaşları listeleyen grid
                     .padding(.horizontal)
                 Spacer()
             }
@@ -35,59 +34,61 @@ struct FriendsView: View {
                 }
             }
             .sheet(isPresented: $isAddFriendModalPresented) {
-                AddFriendView()
+                AddNewFriendView { newFriend in
+                    friends.append(newFriend)  // Yeni arkadaşı listeye ekliyoruz
+                }
             }
         }
     }
 }
 
+// Arkadaşları gösteren Grid View
 struct FriendsGrid: View {
-    let iconName: String
-    let iconColor: Color
-    let count: Int
+    let friends: [Friend]
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 3)
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 15) {
-            ForEach(0..<count, id: \.self) { _ in
-                FriendCircle(iconName: iconName, color: iconColor)
+            ForEach(friends) { friend in
+                FriendCircle(friend: friend)
             }
         }
     }
 }
 
 struct FriendCircle: View {
-    let iconName: String
-    let color: Color
+    let friend: Friend
 
-    var body: some View {
-        Image(systemName: iconName)
-            .resizable()
-            .scaledToFit()
-            .frame(width: 60, height: 60)
-            .foregroundColor(color)
-            .background(Circle().fill(color.opacity(0.2)))
-            .clipShape(Circle())
-            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-            .shadow(radius: 3)
-    }
-}
-
-struct AddFriendView: View {
     var body: some View {
         VStack {
-            Text("Add a New Friend")
-                .font(.largeTitle)
-                .padding()
-            Spacer()
-            Button("Close") {
+            if let image = friend.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    .shadow(radius: 3)
+            } else {
+                Image(systemName: "person.crop.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 60, height: 60)
+                    .foregroundColor(.gray)
+                    .background(Circle().fill(Color.gray.opacity(0.2)))
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    .shadow(radius: 3)
             }
-            .padding()
-            .background(Capsule().fill(Color.blue))
-            .foregroundColor(.white)
+            
+            Text(friend.name)  // İsmi aşağıya yazdırıyoruz
+                .font(.caption)
+                .fontWeight(.medium)
+                .foregroundColor(.black)
+                .frame(maxWidth: 80)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
-        .padding()
-        .navigationTitle("Add Friend")
     }
 }
 
