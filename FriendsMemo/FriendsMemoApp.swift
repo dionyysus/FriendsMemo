@@ -11,7 +11,7 @@ import SwiftUI
 struct FriendsMemoApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            FriendsView()
         }
     }
 }
