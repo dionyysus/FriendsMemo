@@ -5,6 +5,15 @@
 //  Created by Gizem Coskun on 27/02/25.
 //
 
+//
+//  ContentView.swift
+//  FriendsMemo
+//
+//  Created by Gizem Coskun on 27/02/25.
+//
+
+import SwiftUI
+
 import SwiftUI
 
 struct FriendsView: View {
@@ -17,8 +26,13 @@ struct FriendsView: View {
     var body: some View {
         NavigationView {
             VStack {
-                FriendsGrid(friends: friends)  // Arkadaşları listeleyen grid
-                    .padding(.horizontal)
+                if friends.isEmpty {
+                    EmptyStateView()
+                } else {
+                    FriendsGrid(friends: friends)
+                        .padding(.horizontal)
+                }
+                
                 Spacer()
             }
             .navigationTitle("Friends")
@@ -35,14 +49,38 @@ struct FriendsView: View {
             }
             .sheet(isPresented: $isAddFriendModalPresented) {
                 AddNewFriendView { newFriend in
-                    friends.append(newFriend)  // Yeni arkadaşı listeye ekliyoruz
+                    friends.append(newFriend)
                 }
             }
         }
     }
 }
 
-// Arkadaşları gösteren Grid View
+struct EmptyStateView: View {
+    var body: some View {
+        VStack(spacing: 15) {
+            Image(systemName: "person.3.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 120, height: 120)
+                .foregroundColor(.gray.opacity(0.7))
+                .padding()
+            
+            Text("No Friends Yet")
+                .font(.title2)
+                .fontWeight(.semibold)
+                .foregroundColor(.gray)
+            
+            Text("Add new friends and keep their memories close!")
+                .font(.body)
+                .foregroundColor(.gray.opacity(0.8))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 250)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+}
+
 struct FriendsGrid: View {
     let friends: [Friend]
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 3)
@@ -81,7 +119,7 @@ struct FriendCircle: View {
                     .shadow(radius: 3)
             }
             
-            Text(friend.name)  // İsmi aşağıya yazdırıyoruz
+            Text(friend.name)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundColor(.black)
@@ -92,7 +130,6 @@ struct FriendCircle: View {
     }
 }
 
-// MARK: - Preview
 struct FriendsView_Previews: PreviewProvider {
     static var previews: some View {
         FriendsView()
