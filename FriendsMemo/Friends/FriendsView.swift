@@ -5,23 +5,12 @@
 //  Created by Gizem Coskun on 27/02/25.
 //
 
-//
-//  ContentView.swift
-//  FriendsMemo
-//
-//  Created by Gizem Coskun on 27/02/25.
-//
-
-import SwiftUI
 
 import SwiftUI
 
 struct FriendsView: View {
-    private let iconName = "person.circle"
-    private let iconColor: Color = .black
-    
     @State private var isAddFriendModalPresented = false
-    @State private var friends: [Friend] = []  // Eklenen arkadaşları saklayan liste
+    @State private var friends: [Friend] = []
     
     var body: some View {
         NavigationView {
@@ -32,18 +21,15 @@ struct FriendsView: View {
                     FriendsGrid(friends: friends)
                         .padding(.horizontal)
                 }
-                
                 Spacer()
             }
             .navigationTitle("Friends")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        isAddFriendModalPresented.toggle()
-                    }) {
+                    Button(action: { isAddFriendModalPresented.toggle() }) {
                         Image(systemName: "plus")
                             .font(.title2)
-                            .foregroundColor(iconColor)
+                            .foregroundColor(.black)
                     }
                 }
             }
@@ -55,6 +41,7 @@ struct FriendsView: View {
         }
     }
 }
+
 
 struct EmptyStateView: View {
     var body: some View {
@@ -84,11 +71,13 @@ struct EmptyStateView: View {
 struct FriendsGrid: View {
     let friends: [Friend]
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 3)
-
+    
     var body: some View {
         LazyVGrid(columns: columns, spacing: 15) {
             ForEach(friends) { friend in
-                FriendCircle(friend: friend)
+                NavigationLink(destination: FriendDetailView(friend: friend)) {
+                    FriendCircle(friend: friend)
+                }
             }
         }
     }
@@ -96,7 +85,7 @@ struct FriendsGrid: View {
 
 struct FriendCircle: View {
     let friend: Friend
-
+    
     var body: some View {
         VStack {
             if let image = friend.image {
@@ -105,27 +94,16 @@ struct FriendCircle: View {
                     .scaledToFit()
                     .frame(width: 60, height: 60)
                     .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                    .shadow(radius: 3)
             } else {
                 Image(systemName: "person.crop.circle.fill")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 60, height: 60)
                     .foregroundColor(.gray)
-                    .background(Circle().fill(Color.gray.opacity(0.2)))
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                    .shadow(radius: 3)
             }
-            
             Text(friend.name)
                 .font(.caption)
-                .fontWeight(.medium)
                 .foregroundColor(.black)
-                .frame(maxWidth: 80)
-                .lineLimit(1)
-                .truncationMode(.tail)
         }
     }
 }
