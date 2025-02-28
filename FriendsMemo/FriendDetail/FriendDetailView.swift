@@ -6,24 +6,42 @@
 //
 
 import SwiftUI
-import UIKit
 
 struct FriendDetailView: View {
     let friend: Friend
-    @State private var memories: [String] = ["İlk tanışmamız 🥰", "Birlikte en güzel gün!", "Unutulmaz tatil anımız"]
+    @StateObject private var viewModel = FriendDetailViewModel()
 
     var body: some View {
-        PageViewController(memories: memories)
-            .navigationTitle("Memories of \(friend.name)")
-            .edgesIgnoringSafeArea(.all)
+        VStack {
+            // Memory page view
+            PageViewController(memories: $viewModel.memories)
+                .navigationTitle("Memories of \(friend.name)")
+                .edgesIgnoringSafeArea(.all)
+        }
+        .navigationBarItems(trailing: addButton)
+    }
+    
+    // Add button in the navigation bar
+    private var addButton: some View {
+        NavigationLink(destination: AddMemoryView(viewModel: viewModel)) {
+            Image(systemName: "plus.circle.fill")
+                .resizable()
+                .frame(width: 30, height: 30)
+                .foregroundColor(.blue)
+        }
     }
 }
 
+// ViewModel for FriendDetailView
+final class FriendDetailViewModel: ObservableObject {
+    @Published var memories: [String] = ["Test memory", "Another test memory", ":)"]
+}
+
 struct PageViewController: UIViewControllerRepresentable {
-    var memories: [String]
+    @Binding var memories: [String]
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(self)
+        return Coordinator(self)
     }
 
     func makeUIViewController(context: Context) -> UIPageViewController {
@@ -32,18 +50,23 @@ struct PageViewController: UIViewControllerRepresentable {
             navigationOrientation: .horizontal,
             options: nil
         )
-        
+
         pageViewController.dataSource = context.coordinator
         pageViewController.setViewControllers(
             [context.coordinator.viewController(for: 0)],
             direction: .forward,
             animated: true
         )
-
+        
         return pageViewController
     }
 
-    func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {}
+    func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
+        if let currentViewController = uiViewController.viewControllers?.first,
+           let currentIndex = currentViewController.view.tag as? Int {
+            // Update the view if the index is changed
+        }
+    }
 
     class Coordinator: NSObject, UIPageViewControllerDataSource {
         var parent: PageViewController
@@ -51,32 +74,47 @@ struct PageViewController: UIViewControllerRepresentable {
         init(_ parent: PageViewController) {
             self.parent = parent
         }
-        
-        // Fonksiyon adını değiştirmeden self kullanarak çağırıyoruz:
-        func viewController(for index: Int) -> UIViewController {
-            let vc = UIHostingController(rootView: MemoryPage(memory: parent.memories[index]))
-            vc.view.backgroundColor = .white // Sayfa arka planı
-            vc.view.tag = index
-            return vc
-        }
 
-        func presentationIndex(for pageViewController: UIPageViewController) -> Int {
-            0
+        func viewController(for index: Int) -> UIViewController {
+            guard index >= 0, index < parent.memories.count else {
+                return UIViewController()
+            }
+            let memory = parent.memories[index]
+            let memoryVC = MemoryPageController(memory: memory, index: index)
+            return memoryVC
         }
 
         func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
-            let index = viewController.view.tag
-            return index > 0 ? self.viewController(for: index - 1) : nil
+            guard let memoryVC = viewController as? MemoryPageController else {
+                return nil
+            }
+            return memoryVC.index > 0 ? self.viewController(for: memoryVC.index - 1) : nil
         }
 
         func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
-            let index = viewController.view.tag
-            return index < parent.memories.count - 1 ? self.viewController(for: index + 1) : nil
+            guard let memoryVC = viewController as? MemoryPageController else {
+                return nil
+            }
+            return memoryVC.index < parent.memories.count - 1 ? self.viewController(for: memoryVC.index + 1) : nil
         }
     }
 }
 
-// Sayfa içeriği tasarımı
+class MemoryPageController: UIHostingController<MemoryPage> {
+    var memory: String
+    var index: Int
+
+    init(memory: String, index: Int) {
+        self.memory = memory
+        self.index = index
+        super.init(rootView: MemoryPage(memory: memory))
+    }
+
+    required init?(coder aDecoder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+}
+
 struct MemoryPage: View {
     let memory: String
 
@@ -88,6 +126,43 @@ struct MemoryPage: View {
                 .padding()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white) 
+        .background(Color.white)
+    }
+}
+
+struct AddMemoryView: View {
+    @ObservedObject var viewModel: FriendDetailViewModel
+    @State private var newMemory: String = ""
+    @Environment(\.presentationMode) var presentationMode
+
+    var body: some View {
+        VStack {
+            TextField("Add new memory", text: $newMemory)
+                .textFieldStyle(RoundedBorderTextFieldStyle())
+                .padding()
+            
+            Button(action: {
+                addMemory()
+            }) {
+                Text("Add")
+                    .fontWeight(.bold)
+                    .padding()
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
+            .padding()
+            
+            Spacer()
+        }
+        .padding()
+        .navigationTitle("Add Memory")
+    }
+
+    private func addMemory() {
+        guard !newMemory.isEmpty else { return }
+        viewModel.memories.append(newMemory)
+        newMemory = ""
+        presentationMode.wrappedValue.dismiss()
     }
 }
