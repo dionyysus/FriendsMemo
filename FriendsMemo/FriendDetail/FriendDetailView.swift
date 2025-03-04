@@ -6,22 +6,38 @@ struct FriendDetailView: View {
     let friend: Friend
     @StateObject private var viewModel = FriendDetailViewModel()
     @State private var showAddMemoryView = false
-    
+
     var body: some View {
-        VStack {
-            if viewModel.memories.isEmpty {
-                BookCoverView(emoji: friend.emoji, onTap: {
-                    showAddMemoryView.toggle()
-                })
-            } else {
-                MemoryBookView(memories: $viewModel.memories)
+        ZStack(alignment: .topTrailing) {
+            VStack {
+                if viewModel.memories.isEmpty {
+                    BookCoverView(emoji: friend.emoji, onTap: {
+                        showAddMemoryView.toggle()
+                    })
+                } else {
+                    MemoryBookView(memories: $viewModel.memories)
+                }
             }
+            
+            Button(action: {
+                showAddMemoryView.toggle()
+            }) {
+                Image(systemName: "plus.circle")
+                    .resizable()
+                    .frame(width: 30, height: 30)
+                    .padding()
+            }
+            .padding(.trailing, 20)
+            .padding(.top, 20)
         }
         .sheet(isPresented: $showAddMemoryView) {
-            AddMemoryView(viewModel: viewModel)
+            AddMemoryView(viewModel: viewModel) {
+                showAddMemoryView = false // Close sheet when memory is added
+            }
         }
     }
 }
+
 
 struct BookCoverView: View {
     let emoji: String
@@ -37,7 +53,7 @@ struct BookCoverView: View {
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.brown.opacity(0.7))
+//        .background(Color.brown.opacity(0.7))
         .cornerRadius(15)
         .onTapGesture {
             onTap()
@@ -118,13 +134,14 @@ struct AddMemoryView: View {
     @State private var isImagePickerPresented = false
     @State private var canvasView = PKCanvasView()
     @Environment(\.presentationMode) var presentationMode
-    
+    var onMemoryAdded: () -> Void
+
     var body: some View {
         VStack {
             TextField("Write something...", text: $text)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
-            
+
             Button("Choose Image") {
                 isImagePickerPresented.toggle()
             }
@@ -132,29 +149,43 @@ struct AddMemoryView: View {
             .sheet(isPresented: $isImagePickerPresented) {
                 ImagePicker(image: $selectedImage)
             }
-            
+
             DrawingView(canvasView: $canvasView)
                 .frame(height: 300)
                 .background(Color.gray.opacity(0.2))
                 .cornerRadius(10)
                 .padding()
-            
+
             Button("Save Memory") {
-                let drawingImage = canvasView.drawing.image(from: canvasView.bounds, scale: UIScreen.main.scale)
-                let newMemory = Memory(text: text.isEmpty ? nil : text, image: selectedImage, drawing: drawingImage)
+                let newMemory = Memory(
+                    text: text.isEmpty ? nil : text,
+                    image: selectedImage,
+                    drawing: canvasView.drawing.image(from: canvasView.bounds, scale: 1.0)
+                )
                 viewModel.memories.append(newMemory)
-                presentationMode.wrappedValue.dismiss()
+
+                // Reset fields
+                text = ""
+                selectedImage = nil
+                canvasView.drawing = PKDrawing()
+
+                // Automatically close and switch to MemoryBookView
+                onMemoryAdded()
             }
             .padding()
             .background(Color.blue)
             .foregroundColor(.white)
             .cornerRadius(10)
-            
-            Spacer()
+
+            Button("Done") {
+                presentationMode.wrappedValue.dismiss()
+            }
+            .padding()
         }
         .padding()
     }
 }
+
 
 struct Memory {
     var text: String?

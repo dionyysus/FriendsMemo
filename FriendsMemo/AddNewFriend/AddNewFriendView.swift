@@ -1,13 +1,6 @@
 import SwiftUI
 import PhotosUI
 
-//struct Friend: Identifiable {
-//    let id = UUID()
-//    var name: String
-//    var image: UIImage?
-//    var color: Color
-//    var emoji: String  // Added emoji to the struct
-//}
 
 struct ContentView: View {
     @State private var friends: [Friend] = []
