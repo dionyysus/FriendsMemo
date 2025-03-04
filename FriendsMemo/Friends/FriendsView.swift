@@ -1,11 +1,3 @@
-//
-//  ContentView.swift
-//  FriendsMemo
-//
-//  Created by Gizem Coskun on 27/02/25.
-//
-
-
 import SwiftUI
 
 struct FriendsView: View {
@@ -19,7 +11,8 @@ struct FriendsView: View {
                     EmptyStateView()
                 } else {
                     FriendsGrid(friends: friends)
-                        .padding(.horizontal)
+                        .frame(maxHeight: .infinity, alignment: .center)
+                        .padding()
                 }
                 Spacer()
             }
@@ -42,15 +35,11 @@ struct FriendsView: View {
     }
 }
 
-
 struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 15) {
-            Image(systemName: "person.3.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 120, height: 120)
-                .foregroundColor(.gray.opacity(0.7))
+            Text("📚")
+                .font(.system(size: 120))
                 .padding()
             
             Text("No Friends Yet")
@@ -70,43 +59,62 @@ struct EmptyStateView: View {
 
 struct FriendsGrid: View {
     let friends: [Friend]
-    private let columns = Array(repeating: GridItem(.flexible(), spacing: 15), count: 3)
     
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 15) {
-            ForEach(friends) { friend in
-                NavigationLink(destination: FriendDetailView(friend: friend)) {
-                    FriendCircle(friend: friend)
+        ScrollView {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                ForEach(friends) { friend in
+                    NavigationLink(destination: FriendDetailView(friend: friend)) {
+                        FriendCard(friend: friend)
+                            .frame(width: 160, height: 160)
+                            .background(Color.white.opacity(0.2))
+                            .cornerRadius(20)
+                    }
                 }
             }
+            .padding()
         }
     }
 }
 
-struct FriendCircle: View {
+struct FriendCard: View {
     let friend: Friend
     
     var body: some View {
         VStack {
-            if let image = friend.image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 60, height: 60)
-                    .clipShape(Circle())
-            } else {
-                Image(systemName: "person.crop.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 60, height: 60)
-                    .foregroundColor(.gray)
-            }
+            Text(friend.color == .blue ? "📘" : friend.color == .red ? "📕" : friend.color == .green ? "📗" : "📒")
+                .font(.system(size: 100))
+            
             Text(friend.name)
-                .font(.caption)
+                .font(.title3)
+                .fontWeight(.bold)
                 .foregroundColor(.black)
         }
+        .padding()
     }
 }
+
+//struct FriendDetailView: View {
+//    let friend: Friend
+//    
+//    var body: some View {
+//        VStack {
+//            if let image = friend.image {
+//                Image(uiImage: image)
+//                    .resizable()
+//                    .scaledToFit()
+//                    .frame(width: 200, height: 200)
+//                    .clipShape(Circle())
+//            }
+//            Text(friend.name)
+//                .font(.title)
+//                .fontWeight(.bold)
+//                .padding()
+//            Text("Color: \(friend.color.description)")
+//                .font(.body)
+//        }
+//    }
+//}
 
 struct FriendsView_Previews: PreviewProvider {
     static var previews: some View {

@@ -10,6 +10,8 @@ import SwiftUI
 struct Friend: Identifiable {
     let id = UUID()
     let name: String
-    let image: UIImage?
-//    var memories: [String]
+//    let image: UIImage?
+    var color: Color
+    var emoji: String 
+
 }

@@ -1,168 +1,210 @@
-//
-//  FriendDetailView.swift
-//  FriendsMemo
-//
-//  Created by Gizem Coskun on 27/02/25.
-//
-
 import SwiftUI
+import PencilKit
+import PhotosUI
 
 struct FriendDetailView: View {
     let friend: Friend
     @StateObject private var viewModel = FriendDetailViewModel()
-
+    @State private var showAddMemoryView = false
+    
     var body: some View {
         VStack {
-            // Memory page view
-            PageViewController(memories: $viewModel.memories)
-                .navigationTitle("Memories of \(friend.name)")
-                .edgesIgnoringSafeArea(.all)
+            if viewModel.memories.isEmpty {
+                BookCoverView(emoji: friend.emoji, onTap: {
+                    showAddMemoryView.toggle()
+                })
+            } else {
+                MemoryBookView(memories: $viewModel.memories)
+            }
         }
-        .navigationBarItems(trailing: addButton)
+        .sheet(isPresented: $showAddMemoryView) {
+            AddMemoryView(viewModel: viewModel)
+        }
     }
+}
+
+struct BookCoverView: View {
+    let emoji: String
+    let onTap: () -> Void
     
-    // Add button in the navigation bar
-    private var addButton: some View {
-        NavigationLink(destination: AddMemoryView(viewModel: viewModel)) {
-            Image(systemName: "plus.circle.fill")
-                .resizable()
-                .frame(width: 30, height: 30)
-                .foregroundColor(.blue)
+    var body: some View {
+        VStack {
+            Text(emoji)
+                .font(.system(size: 150))
+                .padding()
+            Text("Tap to open the book")
+                .font(.title2)
+                .foregroundColor(.gray)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.brown.opacity(0.7))
+        .cornerRadius(15)
+        .onTapGesture {
+            onTap()
         }
     }
 }
 
-// ViewModel for FriendDetailView
-final class FriendDetailViewModel: ObservableObject {
-    @Published var memories: [String] = ["Test memory", "Another test memory", ":)"]
-}
-
-struct PageViewController: UIViewControllerRepresentable {
-    @Binding var memories: [String]
-
-    func makeCoordinator() -> Coordinator {
-        return Coordinator(self)
-    }
-
-    func makeUIViewController(context: Context) -> UIPageViewController {
-        let pageViewController = UIPageViewController(
-            transitionStyle: .pageCurl,
-            navigationOrientation: .horizontal,
-            options: nil
-        )
-
-        pageViewController.dataSource = context.coordinator
-        pageViewController.setViewControllers(
-            [context.coordinator.viewController(for: 0)],
-            direction: .forward,
-            animated: true
-        )
-        
-        return pageViewController
-    }
-
-    func updateUIViewController(_ uiViewController: UIPageViewController, context: Context) {
-        if let currentViewController = uiViewController.viewControllers?.first,
-           let currentIndex = currentViewController.view.tag as? Int {
-            // Update the view if the index is changed
-        }
-    }
-
-    class Coordinator: NSObject, UIPageViewControllerDataSource {
-        var parent: PageViewController
-
-        init(_ parent: PageViewController) {
-            self.parent = parent
-        }
-
-        func viewController(for index: Int) -> UIViewController {
-            guard index >= 0, index < parent.memories.count else {
-                return UIViewController()
+struct MemoryBookView: View {
+    @Binding var memories: [Memory]
+    @State private var currentPage = 0
+    
+    var body: some View {
+        VStack {
+            if !memories.isEmpty {
+                MemoryPage(memory: memories[currentPage])
+                    .transition(.slide)
             }
-            let memory = parent.memories[index]
-            let memoryVC = MemoryPageController(memory: memory, index: index)
-            return memoryVC
-        }
-
-        func pageViewController(_ pageViewController: UIPageViewController, viewControllerBefore viewController: UIViewController) -> UIViewController? {
-            guard let memoryVC = viewController as? MemoryPageController else {
-                return nil
+            HStack {
+                Button(action: {
+                    if currentPage > 0 { currentPage -= 1 }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.largeTitle)
+                        .opacity(currentPage > 0 ? 1 : 0.3)
+                }
+                .padding()
+                
+                Spacer()
+                
+                Button(action: {
+                    if currentPage < memories.count - 1 { currentPage += 1 }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .font(.largeTitle)
+                        .opacity(currentPage < memories.count - 1 ? 1 : 0.3)
+                }
+                .padding()
             }
-            return memoryVC.index > 0 ? self.viewController(for: memoryVC.index - 1) : nil
         }
-
-        func pageViewController(_ pageViewController: UIPageViewController, viewControllerAfter viewController: UIViewController) -> UIViewController? {
-            guard let memoryVC = viewController as? MemoryPageController else {
-                return nil
-            }
-            return memoryVC.index < parent.memories.count - 1 ? self.viewController(for: memoryVC.index + 1) : nil
-        }
-    }
-}
-
-class MemoryPageController: UIHostingController<MemoryPage> {
-    var memory: String
-    var index: Int
-
-    init(memory: String, index: Int) {
-        self.memory = memory
-        self.index = index
-        super.init(rootView: MemoryPage(memory: memory))
-    }
-
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        .padding()
     }
 }
 
 struct MemoryPage: View {
-    let memory: String
-
+    let memory: Memory
+    
     var body: some View {
         VStack {
-            Text(memory)
-                .font(.title)
-                .multilineTextAlignment(.center)
-                .padding()
+            if let image = memory.image {
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 300)
+            }
+            if let text = memory.text {
+                Text(text)
+                    .font(.title)
+                    .multilineTextAlignment(.center)
+                    .padding()
+            }
+            if let drawing = memory.drawing {
+                Image(uiImage: drawing)
+                    .resizable()
+                    .scaledToFit()
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
+        .cornerRadius(15)
+        .shadow(radius: 10)
     }
 }
 
 struct AddMemoryView: View {
     @ObservedObject var viewModel: FriendDetailViewModel
-    @State private var newMemory: String = ""
+    @State private var text: String = ""
+    @State private var selectedImage: UIImage?
+    @State private var isImagePickerPresented = false
+    @State private var canvasView = PKCanvasView()
     @Environment(\.presentationMode) var presentationMode
-
+    
     var body: some View {
         VStack {
-            TextField("Add new memory", text: $newMemory)
+            TextField("Write something...", text: $text)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
             
-            Button(action: {
-                addMemory()
-            }) {
-                Text("Add")
-                    .fontWeight(.bold)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
+            Button("Choose Image") {
+                isImagePickerPresented.toggle()
             }
             .padding()
+            .sheet(isPresented: $isImagePickerPresented) {
+                ImagePicker(image: $selectedImage)
+            }
+            
+            DrawingView(canvasView: $canvasView)
+                .frame(height: 300)
+                .background(Color.gray.opacity(0.2))
+                .cornerRadius(10)
+                .padding()
+            
+            Button("Save Memory") {
+                let drawingImage = canvasView.drawing.image(from: canvasView.bounds, scale: UIScreen.main.scale)
+                let newMemory = Memory(text: text.isEmpty ? nil : text, image: selectedImage, drawing: drawingImage)
+                viewModel.memories.append(newMemory)
+                presentationMode.wrappedValue.dismiss()
+            }
+            .padding()
+            .background(Color.blue)
+            .foregroundColor(.white)
+            .cornerRadius(10)
             
             Spacer()
         }
         .padding()
-        .navigationTitle("Add Memory")
     }
+}
 
-    private func addMemory() {
-        guard !newMemory.isEmpty else { return }
-        viewModel.memories.append(newMemory)
-        newMemory = ""
-        presentationMode.wrappedValue.dismiss()
+struct Memory {
+    var text: String?
+    var image: UIImage?
+    var drawing: UIImage?
+}
+
+final class FriendDetailViewModel: ObservableObject {
+    @Published var memories: [Memory] = []
+}
+
+struct DrawingView: UIViewRepresentable {
+    @Binding var canvasView: PKCanvasView
+    
+    func makeUIView(context: Context) -> PKCanvasView {
+        canvasView.drawingPolicy = .anyInput
+        return canvasView
+    }
+    
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {}
+}
+
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: ImagePicker
+        
+        init(_ parent: ImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let uiImage = info[.originalImage] as? UIImage {
+                parent.image = uiImage
+            }
+            picker.dismiss(animated: true)
+        }
     }
 }
