@@ -64,7 +64,7 @@ struct FriendsGrid: View {
         ScrollView {
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                 ForEach(friends) { friend in
-                    NavigationLink(destination: FriendDetailView(friend: friend)) {
+                    NavigationLink(destination: FreeformNoteView()) {
                         FriendCard(friend: friend)
                             .frame(width: 160, height: 160)
                             .background(Color.white.opacity(0.2))

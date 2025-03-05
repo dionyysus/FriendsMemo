@@ -1,17 +1,19 @@
 import SwiftUI
 import PencilKit
 
-
 struct TextItem: Identifiable {
     let id = UUID()
     var text: String
     var position: CGPoint
+    var fontSize: CGFloat = 24 // Default font size
+    var isEditing: Bool = false
 }
 
 struct ImageItem: Identifiable {
     let id = UUID()
     var image: UIImage
     var position: CGPoint
+    var scale: CGFloat = 1.0
 }
 
 struct FreeformNoteView: View {
@@ -37,30 +39,64 @@ struct FreeformNoteView: View {
                 selectedPenType: $selectedPenType
             )
             
-            ForEach(textItems) { item in
-                Text(item.text)
-                    .font(.title)
-                    .position(item.position)
-                    .gesture(DragGesture()
-                        .onChanged { value in
-                            if let index = textItems.firstIndex(where: { $0.id == item.id }) {
-                                textItems[index].position = value.location
-                            }
-                        }
-                    )
+            // Enhanced Text Items with Pinch-to-Zoom and Editing
+            ForEach($textItems) { $item in
+                ZStack {
+                    if item.isEditing {
+                        TextField("Edit Text", text: $item.text, onCommit: {
+                            item.isEditing = false
+                        })
+                        .font(.system(size: item.fontSize))
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .position(item.position)
+                    } else {
+                        Text(item.text)
+                            .font(.system(size: item.fontSize))
+                            .position(item.position)
+                            .gesture(
+                                TapGesture(count: 2)
+                                    .onEnded {
+                                        item.isEditing = true
+                                    }
+                            )
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        item.position = value.location
+                                    }
+                            )
+                            .gesture(
+                                MagnificationGesture()
+                                    .onChanged { scale in
+                                        item.fontSize = max(20, min(item.fontSize * scale.magnitude, 72))
+                                    }
+                            )
+                    }
+                }
             }
             
+            // Enhanced Image Items with Pinch-to-Zoom
             ForEach(images) { item in
                 Image(uiImage: item.image)
                     .resizable()
-                    .frame(width: 100, height: 100)
+                    .scaledToFit()
+                    .frame(width: 100 * item.scale, height: 100 * item.scale)
                     .position(item.position)
-                    .gesture(DragGesture()
-                        .onChanged { value in
-                            if let index = images.firstIndex(where: { $0.id == item.id }) {
-                                images[index].position = value.location
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                if let index = images.firstIndex(where: { $0.id == item.id }) {
+                                    images[index].position = value.location
+                                }
                             }
-                        }
+                    )
+                    .gesture(
+                        MagnificationGesture()
+                            .onChanged { scale in
+                                if let index = images.firstIndex(where: { $0.id == item.id }) {
+                                    images[index].scale = max(0.5, min(item.scale * scale.magnitude, 3.0))
+                                }
+                            }
                     )
             }
             
@@ -99,6 +135,66 @@ struct FreeformNoteView: View {
         }
     }
     
+    private func textItemView(_ item: TextItem) -> some View {
+        TextField("New Text", text: Binding(
+            get: { item.text },
+            set: { newValue in
+                if let index = textItems.firstIndex(where: { $0.id == item.id }) {
+                    textItems[index].text = newValue
+                }
+            }
+        ))
+        .font(.system(size: item.fontSize))
+        .position(item.position)
+        .gesture(dragGesture(for: item))
+        .gesture(magnificationGesture(for: item))
+    }
+    
+    private func imageItemView(_ item: ImageItem) -> some View {
+        Image(uiImage: item.image)
+            .resizable()
+            .scaledToFit()
+            .frame(width: 100 * item.scale, height: 100 * item.scale)
+            .position(item.position)
+            .gesture(dragGesture(for: item))
+            .gesture(magnificationGesture(for: item))
+    }
+    
+    // Other private methods and code
+    private func dragGesture(for item: TextItem) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if let index = textItems.firstIndex(where: { $0.id == item.id }) {
+                    textItems[index].position = value.location
+                }
+            }
+    }
+    
+    private func dragGesture(for item: ImageItem) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if let index = images.firstIndex(where: { $0.id == item.id }) {
+                    images[index].position = value.location
+                }
+            }
+    }
+    private func magnificationGesture(for item: TextItem) -> some Gesture {
+        MagnificationGesture()
+            .onChanged { scale in
+                if let index = textItems.firstIndex(where: { $0.id == item.id }) {
+                    textItems[index].fontSize = max(10, min(item.fontSize * scale.magnitude, 72))
+                }
+            }
+    }
+    
+    private func magnificationGesture(for item: ImageItem) -> some Gesture {
+        MagnificationGesture()
+            .onChanged { scale in
+                if let index = images.firstIndex(where: { $0.id == item.id }) {
+                    images[index].scale = max(0.5, min(item.scale * scale.magnitude, 3.0))
+                }
+            }
+    }
     private var toolbar: some View {
         HStack(spacing: 20) {
             Button(action: {
@@ -138,6 +234,15 @@ struct FreeformNoteView: View {
                     Text("Clear")
                 }
             }
+            
+            Button(action: {
+                showingColorPicker = true
+            }) {
+                VStack {
+                    Image(systemName: "paintpalette")
+                    Text("Color")
+                }
+            }
         }
         .padding()
         .background(Color.white.opacity(0.8))
@@ -151,8 +256,7 @@ struct FreeformNoteView: View {
     }
 }
 
-// (Keep all other structs from the previous implementation)
-// ColorPickerView, CanvasView, CustomImagePicker remain the same
+
 struct CanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     @Binding var toolPicker: PKToolPicker
@@ -192,6 +296,7 @@ struct CustomImagePicker: UIViewControllerRepresentable {
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
         return picker
     }
     
@@ -279,6 +384,21 @@ struct ColorPickerView: View {
         .zIndex(1)
     }
 }
+
+struct SimultaneousGesture: Gesture {
+    let first: DragGesture
+    let second: MagnificationGesture
+    
+    init(_ first: DragGesture, _ second: MagnificationGesture) {
+        self.first = first
+        self.second = second
+    }
+    
+    var body: some Gesture {
+        first.simultaneously(with: second)
+    }
+}
+
 struct FreeformNoteView_Previews: PreviewProvider {
     static var previews: some View {
         FreeformNoteView()

@@ -19,7 +19,7 @@ struct ContentView: View {
                 }
                 .navigationTitle("Friends List")
                 
-                Button("Add New Friend") {
+                Button("New Friend") {
                     showingAddFriendView = true
                 }
                 .padding()
