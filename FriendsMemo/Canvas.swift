@@ -16,6 +16,13 @@ struct ImageItem: Identifiable {
     var scale: CGFloat = 1.0
 }
 
+struct SavedDrawing: Identifiable {
+    var id = UUID()
+    var textItems: [TextItem] // your model for text items
+    var images: [ImageItem] // your model for image items
+    var coverImage: UIImage? // Add this property for the cover image
+}
+
 struct FreeformNoteView: View {
     @State private var textItems: [TextItem] = []
     @State private var images: [ImageItem] = []
@@ -227,57 +234,32 @@ struct FreeformNoteView: View {
     }
 }
 
-struct SavedDrawing: Identifiable {
-    let id = UUID()
-    var textItems: [TextItem]
-    var images: [ImageItem]
-}
 
 struct MemoryCollectionView: View {
     @Binding var savedDrawings: [SavedDrawing]
-    
-    // Define the grid layout
-    let columns = [
-        GridItem(.flexible(), spacing: 20),
-        GridItem(.flexible(), spacing: 20)
-    ]
-    
+
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 20) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
                 ForEach(savedDrawings) { drawing in
                     NavigationLink(destination: SavedDrawingDetailView(savedDrawing: drawing)) {
-                        VStack(spacing: 10) {
-                            // Display Text Items
-                            ForEach(drawing.textItems) { item in
-                                Text(item.text)
-                                    .font(.system(size: item.fontSize, weight: .medium))
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .position(item.position)
-                            }
-                            
-                            // Display Images
-                            ForEach(drawing.images) { item in
-                                Image(uiImage: item.image)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 100 * item.scale, height: 100 * item.scale)
-                                    .cornerRadius(10)
-                                    .clipped()
-                                    .position(item.position)
-                            }
+                        VStack {
+                            Image(systemName: "heart.fill") 
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 100, height: 100)
+                                .foregroundColor(.black)
+                                .padding()
                         }
                         .padding()
                         .background(Color.white)
-                        .cornerRadius(12)
-                        .shadow(color: Color.gray.opacity(0.3), radius: 10, x: 0, y: 5)
+                        .cornerRadius(10)
+                        .shadow(radius: 5)
                     }
-                    .padding(.horizontal)
                 }
             }
-            .padding()
         }
-        .navigationBarTitle("Memory Collection", displayMode: .inline)
+        .padding()
     }
 }
 
@@ -286,23 +268,19 @@ struct SavedDrawingDetailView: View {
     var savedDrawing: SavedDrawing
     
     var body: some View {
-        VStack {
-            ForEach(savedDrawing.textItems) { item in
-                Text(item.text)
-                    .font(.system(size: item.fontSize))
-                    .position(item.position)
-            }
-            
-            ForEach(savedDrawing.images) { item in
-                Image(uiImage: item.image)
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 100 * item.scale, height: 100 * item.scale)
-                    .position(item.position)
-            }
+        ForEach(savedDrawing.textItems) { item in
+            Text(item.text)
+                .font(.system(size: item.fontSize))
+                .position(item.position)
         }
-        .navigationBarTitle("Saved Drawing", displayMode: .inline)
-        .padding()
+
+        ForEach(savedDrawing.images) { item in
+            Image(uiImage: item.image)
+                .resizable()
+                .scaledToFit()
+                    .frame(width: 100 * item.scale, height: 100 * item.scale)
+                .position(item.position)
+        }
     }
 }
 

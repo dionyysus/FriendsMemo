@@ -53,7 +53,7 @@ struct AddNewFriendView: View {
     
     var body: some View {
         VStack {
-            Text("Add a New Friend")
+            Text("New Memory")
                 .font(.largeTitle)
                 .padding()
             
@@ -70,7 +70,7 @@ struct AddNewFriendView: View {
             
             
             
-            TextField("Enter friend's name", text: $name)
+            TextField("Enter book's name", text: $name)
                 .textFieldStyle(RoundedBorderTextFieldStyle())
                 .padding()
             
@@ -92,7 +92,7 @@ struct AddNewFriendView: View {
             
             Spacer()
             
-            Button("Add Friend") {
+            Button("Add Memory") {
                 if !name.isEmpty {
                     let newFriend = Friend(name: name, color: selectedColor, emoji: colors.first(where: { $0.color == selectedColor })?.emoji ?? "📚")
                     onAddFriend(newFriend)  // Add to the list

@@ -16,7 +16,7 @@ struct FriendsView: View {
                 }
                 Spacer()
             }
-            .navigationTitle("Friends")
+            .navigationTitle("Memory Library")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: { isAddFriendModalPresented.toggle() }) {
@@ -38,16 +38,16 @@ struct FriendsView: View {
 struct EmptyStateView: View {
     var body: some View {
         VStack(spacing: 15) {
-            Text("📚")
+            Text("📓")
                 .font(.system(size: 120))
                 .padding()
             
-            Text("No Friends Yet")
+            Text("No Memories Yet")
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundColor(.gray)
             
-            Text("Add new friends and keep their memories close!")
+            Text("Your memory book is waiting! Create your first memory today.")
                 .font(.body)
                 .foregroundColor(.gray.opacity(0.8))
                 .multilineTextAlignment(.center)
