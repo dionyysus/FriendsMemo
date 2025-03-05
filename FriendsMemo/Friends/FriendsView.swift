@@ -57,6 +57,13 @@ struct EmptyStateView: View {
     }
 }
 
+//struct MemoryCollectionView: View {
+//    
+//    var body: some View {
+//        Text(verbatim: "fdd")
+//    }
+//}
+
 struct FriendsGrid: View {
     let friends: [Friend]
     

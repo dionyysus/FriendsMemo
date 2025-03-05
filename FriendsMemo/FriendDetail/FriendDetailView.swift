@@ -127,6 +127,8 @@ struct MemoryPage: View {
     }
 }
 
+
+
 struct AddMemoryView: View {
     @ObservedObject var viewModel: FriendDetailViewModel
     @State private var text: String = ""
