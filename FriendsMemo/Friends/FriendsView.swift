@@ -26,49 +26,53 @@ struct BookView: View {
 struct BookDetailView: View {
     let book: MemoryBook
     @State private var currentPage = 0
-    
-    let pages = ["Page 1: Introduction", "Page 2: Memories", "Page 3: More Details"]
+    @State private var pages: [String] = ["Page 1: Introduction", "Page 2: Memories", "Page 3: More Details"]
+    @State private var animatePageChange = false
 
     var body: some View {
         ZStack {
             Color.white.edgesIgnoringSafeArea(.all)
 
             VStack {
-                Text(book.name)
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding()
-
                 TabView(selection: $currentPage) {
                     ForEach(0..<pages.count, id: \.self) { index in
                         Text(pages[index])
                             .font(.title)
                             .padding()
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .frame(maxWidth: 350, maxHeight: 450)
                             .background(book.color.toSwiftUIColor().opacity(0.2))
                             .cornerRadius(10)
                             .shadow(radius: 5)
                             .tag(index)
+                            .transition(.opacity) // Add a transition effect (fade in/fade out)
                     }
                 }
                 .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                .animation(.easeInOut(duration: 0.5), value: animatePageChange) // Add smooth animation
 
-                Button(action: {
-                    currentPage = (currentPage + 1) % pages.count
-                }) {
-                    Text("Next Page")
-                        .font(.title2)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
-                }
-                .padding()
+                Spacer()
             }
         }
+        .navigationBarTitle(book.name, displayMode: .inline)
+        .navigationBarItems(trailing:
+            Button(action: {
+                // Trigger the animation before adding the new page
+                withAnimation {
+                    let newPage = "Page \(pages.count + 1): New Page"
+                    pages.append(newPage) // Add a new page
+                    currentPage = pages.count - 1 // Navigate to the newly added page
+                    animatePageChange.toggle() // Trigger the animation state change
+                }
+            }) {
+                Image(systemName: "plus.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 30)
+                    .foregroundColor(.blue)
+            }
+        )
     }
 }
-
 
 struct AddNewMemoryBookView: View {
     var onSave: (MemoryBook) -> Void
