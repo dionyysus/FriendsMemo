@@ -1,5 +1,108 @@
 import SwiftUI
 
+struct BookView: View {
+    let book: MemoryBook
+
+    var body: some View {
+        NavigationLink(destination: BookDetailView(book: book)) {
+            VStack(spacing: 8) {
+                Image("BookCover")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 320, height: 420)
+                    .colorMultiply(book.color.toSwiftUIColor())
+                    .shadow(radius: 10)
+
+                Text(book.name)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.black)
+                    .multilineTextAlignment(.center)
+            }
+        }
+    }
+}
+
+struct BookDetailView: View {
+    let book: MemoryBook
+    @State private var currentPage = 0
+    @State private var pages: [String] = []
+    @State private var animatePageChange = false
+
+    private var pagesKey: String {
+        return "bookPages_\(book.id.uuidString)"
+    }
+
+    var body: some View {
+        ZStack {
+            Color.white.edgesIgnoringSafeArea(.all)
+
+            VStack {
+                // Check if there are pages
+                if pages.isEmpty {
+                    Text("No Memories")
+                        .font(.title)
+                        .padding()
+                        .foregroundColor(.gray)
+                } else {
+                    TabView(selection: $currentPage) {
+                        ForEach(0..<pages.count, id: \.self) { index in
+                            Text(pages[index])
+                                .font(.title)
+                                .padding()
+                                .frame(maxWidth: 350, maxHeight: 450)
+                                .background(book.color.toSwiftUIColor().opacity(0.2))
+                                .cornerRadius(10)
+                                .shadow(radius: 5)
+                                .tag(index)
+                                .transition(.opacity)
+                        }
+                    }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                    .animation(.easeInOut(duration: 0.5), value: animatePageChange)
+                }
+
+                Spacer()
+            }
+        }
+        .navigationBarTitle(book.name, displayMode: .inline)
+        .navigationBarItems(trailing:
+            Button(action: {
+                withAnimation {
+                    let newPage = "Page \(pages.count + 1): New Page"
+                    pages.append(newPage)
+                    currentPage = pages.count - 1
+                    animatePageChange.toggle()
+                    savePagesToUserDefaults()
+                }
+            }) {
+                Image(systemName: "plus.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 30, height: 30)
+                    .foregroundColor(book.color.toSwiftUIColor())
+            }
+        )
+
+        .onAppear {
+            loadPagesFromUserDefaults()
+        }
+        
+    }
+
+    private func loadPagesFromUserDefaults() {
+        if let savedPages = UserDefaults.standard.object(forKey: pagesKey) as? [String] {
+            pages = savedPages
+        }
+    }
+
+    // Save pages to UserDefaults based on the book's ID
+    private func savePagesToUserDefaults() {
+        UserDefaults.standard.set(pages, forKey: pagesKey)
+    }
+}
+
+
 struct AddNewMemoryBookView: View {
     var onSave: (MemoryBook) -> Void
     @Environment(\.presentationMode) var presentationMode
@@ -45,8 +148,7 @@ struct FriendsView: View {
     @State private var isAddFriendModalPresented = false
     @State private var isShowingDeleteAlert = false
     @State private var books: [MemoryBook] = []
-    @State private var selectedBook = 0
-
+    
     var body: some View {
         NavigationView {
             VStack {
@@ -54,10 +156,9 @@ struct FriendsView: View {
                     .font(.largeTitle)
                     .bold()
                     .padding(.top, 10)
-
+                
                 if books.isEmpty {
                     VStack {
-                       
                         Image("BookCover")
                             .resizable()
                             .scaledToFit()
@@ -72,19 +173,31 @@ struct FriendsView: View {
                     }
                     .frame(height: 400)
                 } else {
-                    TabView(selection: $selectedBook) {
-                        ForEach(books.indices, id: \.self) { index in
-                            NavigationLink(destination: FreeformNoteView()) {
-                                BookView(book: books[index])
-                                    .frame(width: 200, height: 330)
-                                    .padding(.horizontal, -20)
-                                    .tag(index)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            ForEach(books.indices, id: \.self) { index in
+                                GeometryReader { geometry in
+                                    let minX = geometry.frame(in: .global).minX
+                                    let rotationAngle = Angle(degrees: Double(minX - 100) / -15.0)
+                                    let scale = max(0.8, 1.0 - abs(Double(minX - 100)) / 500.0)  // Adjusted scale
+                                    let opacity = max(0.6, 1.2 - abs(Double(minX - 100)) / 300.0) // Adjusted opacity
+                                    let offsetX = minX / 15
+
+                                    NavigationLink(destination: BookDetailView(book: books[index])) {
+                                        BookView(book: books[index])
+                                            .frame(width: 250, height: 300)
+                                    }
+                                        .rotation3DEffect(rotationAngle, axis: (x: 0, y: 1.0, z: 0))
+                                        .scaleEffect(scale)
+                                        .opacity(opacity)
+                                        .offset(x: offsetX)
+                                    
+                                }
+                                .frame(width: 250, height: 350)
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
+                        .padding(.horizontal, 60)
                     }
-                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                    .frame(height: 460)
                 }
             }
             .navigationBarItems(
@@ -120,11 +233,10 @@ struct FriendsView: View {
             }
         }
     }
-
+    
     func deleteCurrentBook() {
         if !books.isEmpty {
-            books.remove(at: selectedBook)
-            selectedBook = max(0, selectedBook - 1)
+            books.remove(at: 0)
             saveBooks()
         }
     }
@@ -139,29 +251,6 @@ struct FriendsView: View {
         if let data = UserDefaults.standard.data(forKey: "books"),
            let decoded = try? JSONDecoder().decode([MemoryBook].self, from: data) {
             books = decoded
-        }
-    }
-}
-
-struct BookView: View {
-    let book: MemoryBook
-
-    var body: some View {
-        VStack(spacing: 8) {
-            Image("BookCover")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 320, height: 420)
-                .colorMultiply(book.color.toSwiftUIColor())
-                .shadow(radius: 10)
-
-            
-            Text(book.name)
-                .font(.title2)
-                .fontWeight(.bold)
-                .foregroundColor(.black)
-                .multilineTextAlignment(.center)
-                .multilineTextAlignment(.center)
         }
     }
 }
