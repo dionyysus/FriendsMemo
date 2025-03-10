@@ -41,6 +41,7 @@ struct AddNewFriendView: View {
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var selectedImage: UIImage? = nil
     @State private var selectedColor: Color = .blue
+
     
     let colors: [(color: Color, emoji: String)] = [
         (.blue, "📘"),
