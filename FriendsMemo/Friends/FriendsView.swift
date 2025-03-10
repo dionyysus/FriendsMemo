@@ -29,7 +29,6 @@ struct BookDetailView: View {
     @State private var pages: [String] = []
     @State private var animatePageChange = false
 
-    // Key for UserDefaults (based on book's id)
     private var pagesKey: String {
         return "bookPages_\(book.id.uuidString)"
     }
@@ -74,22 +73,23 @@ struct BookDetailView: View {
                     pages.append(newPage)
                     currentPage = pages.count - 1
                     animatePageChange.toggle()
-                    savePagesToUserDefaults() // Save the pages when they are updated
+                    savePagesToUserDefaults()
                 }
             }) {
                 Image(systemName: "plus.circle.fill")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 30, height: 30)
-                    .foregroundColor(.blue)
+                    .foregroundColor(book.color.toSwiftUIColor())
             }
         )
+
         .onAppear {
-            loadPagesFromUserDefaults() // Load pages when the view appears
+            loadPagesFromUserDefaults()
         }
+        
     }
 
-    // Load pages from UserDefaults based on the book's ID
     private func loadPagesFromUserDefaults() {
         if let savedPages = UserDefaults.standard.object(forKey: pagesKey) as? [String] {
             pages = savedPages
