@@ -144,15 +144,6 @@ struct FreeformNoteView: View {
                     configurePenTool()
                 }
                 
-                // Save Button
-                Button("Save") {
-                    saveDrawing()
-                }
-                .padding()
-                .background(Color.green)
-                .foregroundColor(.white)
-                .cornerRadius(10)
-                .padding()
                 
                 // Navigation to saved drawings
                 NavigationLink(destination: MemoryCollectionView(savedDrawings: $savedDrawings)) {
@@ -165,6 +156,16 @@ struct FreeformNoteView: View {
                 .padding()
             }
             .navigationBarTitle("Freeform Note", displayMode: .inline)
+            .navigationBarItems(
+                leading: Button("Memory Library") {
+                    // Azione per tornare indietro
+                }.foregroundColor(.blue),
+                
+                trailing: Button("Save") {
+                    saveDrawing()
+                }
+                .foregroundColor(.blue)
+            )
         }
     }
     

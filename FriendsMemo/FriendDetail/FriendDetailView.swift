@@ -2,6 +2,9 @@ import SwiftUI
 import PencilKit
 import PhotosUI
 
+import SwiftUI
+import PencilKit
+
 struct FriendDetailView: View {
     let friend: Friend
     @StateObject private var viewModel = FriendDetailViewModel()
@@ -11,9 +14,7 @@ struct FriendDetailView: View {
         ZStack(alignment: .topTrailing) {
             VStack {
                 if viewModel.memories.isEmpty {
-                    BookCoverView(emoji: friend.emoji, onTap: {
-                        showAddMemoryView.toggle()
-                    })
+                    BookCoverView(emoji: friend.emoji)
                 } else {
                     MemoryBookView(memories: $viewModel.memories)
                 }
@@ -32,17 +33,15 @@ struct FriendDetailView: View {
         }
         .sheet(isPresented: $showAddMemoryView) {
             AddMemoryView(viewModel: viewModel) {
-                showAddMemoryView = false // Close sheet when memory is added
+                showAddMemoryView = false
             }
         }
     }
 }
 
-
 struct BookCoverView: View {
     let emoji: String
-    let onTap: () -> Void
-    
+
     var body: some View {
         VStack {
             Text(emoji)
@@ -53,14 +52,9 @@ struct BookCoverView: View {
                 .foregroundColor(.gray)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-//        .background(Color.brown.opacity(0.7))
         .cornerRadius(15)
-        .onTapGesture {
-            onTap()
-        }
     }
 }
-
 struct MemoryBookView: View {
     @Binding var memories: [Memory]
     @State private var currentPage = 0

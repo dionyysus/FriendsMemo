@@ -7,11 +7,33 @@
 
 import SwiftUI
 
-struct Friend: Identifiable {
+struct Friend: Identifiable, Codable {
     let id = UUID()
     let name: String
-//    let image: UIImage?
-    var color: Color
-    var emoji: String 
+    let emoji: String
+    private var colorName: String // ✅ Salvare il colore come stringa
 
+    var color: Color { // ✅ Convertire il colore dalla stringa
+        switch colorName {
+        case "blue": return .blue
+        case "red": return .red
+        case "green": return .green
+        case "yellow": return .yellow
+        default: return .gray
+        }
+    }
+
+    init(name: String, color: Color, emoji: String) {
+        self.name = name
+        self.emoji = emoji
+        self.colorName = Friend.getColorName(color)
+    }
+
+    private static func getColorName(_ color: Color) -> String {
+        if color == .blue { return "blue" }
+        if color == .red { return "red" }
+        if color == .green { return "green" }
+        if color == .yellow { return "yellow" }
+        return "gray"
+    }
 }
