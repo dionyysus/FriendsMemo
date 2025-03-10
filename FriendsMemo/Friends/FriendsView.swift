@@ -26,29 +26,42 @@ struct BookView: View {
 struct BookDetailView: View {
     let book: MemoryBook
     @State private var currentPage = 0
-    @State private var pages: [String] = ["Page 1: Introduction", "Page 2: Memories", "Page 3: More Details"]
+    @State private var pages: [String] = []
     @State private var animatePageChange = false
+
+    // Key for UserDefaults (based on book's id)
+    private var pagesKey: String {
+        return "bookPages_\(book.id.uuidString)"
+    }
 
     var body: some View {
         ZStack {
             Color.white.edgesIgnoringSafeArea(.all)
 
             VStack {
-                TabView(selection: $currentPage) {
-                    ForEach(0..<pages.count, id: \.self) { index in
-                        Text(pages[index])
-                            .font(.title)
-                            .padding()
-                            .frame(maxWidth: 350, maxHeight: 450)
-                            .background(book.color.toSwiftUIColor().opacity(0.2))
-                            .cornerRadius(10)
-                            .shadow(radius: 5)
-                            .tag(index)
-                            .transition(.opacity) // Add a transition effect (fade in/fade out)
+                // Check if there are pages
+                if pages.isEmpty {
+                    Text("No Memories")
+                        .font(.title)
+                        .padding()
+                        .foregroundColor(.gray)
+                } else {
+                    TabView(selection: $currentPage) {
+                        ForEach(0..<pages.count, id: \.self) { index in
+                            Text(pages[index])
+                                .font(.title)
+                                .padding()
+                                .frame(maxWidth: 350, maxHeight: 450)
+                                .background(book.color.toSwiftUIColor().opacity(0.2))
+                                .cornerRadius(10)
+                                .shadow(radius: 5)
+                                .tag(index)
+                                .transition(.opacity)
+                        }
                     }
+                    .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                    .animation(.easeInOut(duration: 0.5), value: animatePageChange)
                 }
-                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                .animation(.easeInOut(duration: 0.5), value: animatePageChange) // Add smooth animation
 
                 Spacer()
             }
@@ -56,12 +69,12 @@ struct BookDetailView: View {
         .navigationBarTitle(book.name, displayMode: .inline)
         .navigationBarItems(trailing:
             Button(action: {
-                // Trigger the animation before adding the new page
                 withAnimation {
                     let newPage = "Page \(pages.count + 1): New Page"
-                    pages.append(newPage) // Add a new page
-                    currentPage = pages.count - 1 // Navigate to the newly added page
-                    animatePageChange.toggle() // Trigger the animation state change
+                    pages.append(newPage)
+                    currentPage = pages.count - 1
+                    animatePageChange.toggle()
+                    savePagesToUserDefaults() // Save the pages when they are updated
                 }
             }) {
                 Image(systemName: "plus.circle.fill")
@@ -71,8 +84,24 @@ struct BookDetailView: View {
                     .foregroundColor(.blue)
             }
         )
+        .onAppear {
+            loadPagesFromUserDefaults() // Load pages when the view appears
+        }
+    }
+
+    // Load pages from UserDefaults based on the book's ID
+    private func loadPagesFromUserDefaults() {
+        if let savedPages = UserDefaults.standard.object(forKey: pagesKey) as? [String] {
+            pages = savedPages
+        }
+    }
+
+    // Save pages to UserDefaults based on the book's ID
+    private func savePagesToUserDefaults() {
+        UserDefaults.standard.set(pages, forKey: pagesKey)
     }
 }
+
 
 struct AddNewMemoryBookView: View {
     var onSave: (MemoryBook) -> Void
