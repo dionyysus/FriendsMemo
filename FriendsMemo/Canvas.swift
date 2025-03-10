@@ -1,29 +1,86 @@
 import SwiftUI
 import PencilKit
 
+
 struct TextItem: Identifiable {
     let id = UUID()
     var text: String
     var position: CGPoint
-    var fontSize: CGFloat = 24
-    var isEditing: Bool = false
 }
 
 struct ImageItem: Identifiable {
     let id = UUID()
     var image: UIImage
     var position: CGPoint
-    var scale: CGFloat = 1.0
 }
 
-struct SavedDrawing: Identifiable {
-    var id = UUID()
-    var textItems: [TextItem] // your model for text items
-    var images: [ImageItem] // your model for image items
-    var coverImage: UIImage? // Add this property for the cover image
+struct ColorPickerView: View {
+    @Binding var selectedColor: UIColor
+    @Binding var isShowing: Bool
+    
+    let colors: [UIColor] = [
+        .black,
+        .red,
+        .blue,
+        .green,
+        .purple,
+        .orange,
+        .systemPink,
+        .brown,
+        .gray
+    ]
+    
+    var body: some View {
+        VStack {
+            Text("Select Pen Color")
+                .font(.headline)
+                .padding()
+            
+            LazyVGrid(columns: [
+                GridItem(.adaptive(minimum: 50))
+            ], spacing: 15) {
+                ForEach(colors, id: \.self) { color in
+                    Button(action: {
+                        selectedColor = color
+                        isShowing = false
+                    }) {
+                        Circle()
+                            .fill(Color(color))
+                            .frame(width: 50, height: 50)
+                            .overlay(
+                                Circle()
+                                    .stroke(color == selectedColor ? Color.white : Color.clear, lineWidth: 3)
+                                    .background(
+                                        Circle()
+                                            .stroke(Color.black.opacity(0.3), lineWidth: 2)
+                                    )
+                            )
+                    }
+                }
+            }
+            .padding()
+            
+            Button("Cancel") {
+                isShowing = false
+            }
+            .foregroundColor(.red)
+            .padding()
+        }
+        .background(Color.white)
+        .cornerRadius(15)
+        .shadow(radius: 10)
+        .padding()
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.opacity(0.4))
+        .edgesIgnoringSafeArea(.all)
+        .zIndex(1)
+    }
 }
 
 struct FreeformNoteView: View {
+    let book: MemoryBook
+    let pageContent: String
+    
     @State private var textItems: [TextItem] = []
     @State private var images: [ImageItem] = []
     @State private var currentText = ""
@@ -35,145 +92,79 @@ struct FreeformNoteView: View {
     @State private var showingColorPicker = false
     @State private var selectedPenColor: UIColor = .black
     @State private var selectedPenType: PKInkingTool.InkType = .pen
-    @State private var savedDrawings: [SavedDrawing] = []
-
+    
     var body: some View {
-        NavigationView {
-            VStack {
-                ZStack {
-                    CanvasView(
-                        canvasView: $canvasView,
-                        toolPicker: $toolPicker,
-                        showingToolPicker: $showingToolPicker,
-                        selectedPenColor: $selectedPenColor,
-                        selectedPenType: $selectedPenType
-                    )
-                    
-                    // Enhanced Text Items with Pinch-to-Zoom and Editing
-                    ForEach($textItems) { $item in
-                        ZStack {
-                            if item.isEditing {
-                                TextField("Edit Text", text: $item.text, onCommit: {
-                                    item.isEditing = false
-                                })
-                                .font(.system(size: item.fontSize))
-                                .textFieldStyle(RoundedBorderTextFieldStyle())
-                                .position(item.position)
-                            } else {
-                                Text(item.text)
-                                    .font(.system(size: item.fontSize))
-                                    .position(item.position)
-                                    .gesture(
-                                        TapGesture(count: 2)
-                                            .onEnded {
-                                                item.isEditing = true
-                                            }
-                                    )
-                                    .gesture(
-                                        DragGesture()
-                                            .onChanged { value in
-                                                item.position = value.location
-                                            }
-                                    )
-                                    .gesture(
-                                        MagnificationGesture()
-                                            .onChanged { scale in
-                                                item.fontSize = max(10, min(item.fontSize * scale.magnitude, 72)) // Fixed font size bounds
-                                            }
-                                    )
+        ZStack {
+            CanvasView(
+                canvasView: $canvasView,
+                toolPicker: $toolPicker,
+                showingToolPicker: $showingToolPicker,
+                selectedPenColor: $selectedPenColor,
+                selectedPenType: $selectedPenType
+            )
+            
+            ForEach(textItems) { item in
+                Text(item.text)
+                    .font(.title)
+                    .position(item.position)
+                    .gesture(DragGesture()
+                        .onChanged { value in
+                            if let index = textItems.firstIndex(where: { $0.id == item.id }) {
+                                textItems[index].position = value.location
                             }
                         }
-                    }
-                    
-                    // Enhanced Image Items with Pinch-to-Zoom
-                    ForEach(images) { item in
-                        Image(uiImage: item.image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 100 * item.scale, height: 100 * item.scale)
-                            .position(item.position)
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        if let index = images.firstIndex(where: { $0.id == item.id }) {
-                                            images[index].position = value.location
-                                        }
-                                    }
-                            )
-                            .gesture(
-                                MagnificationGesture()
-                                    .onChanged { scale in
-                                        if let index = images.firstIndex(where: { $0.id == item.id }) {
-                                            images[index].scale = max(0.5, min(item.scale * scale.magnitude, 3.0))
-                                        }
-                                    }
-                            )
-                    }
-                    
-                    if showingToolPicker {
-                        Button("Done") {
-                            showingToolPicker = false
-                            toolPicker.setVisible(false, forFirstResponder: canvasView)
+                    )
+            }
+            
+            ForEach(images) { item in
+                Image(uiImage: item.image)
+                    .resizable()
+                    .frame(width: 100, height: 100)
+                    .position(item.position)
+                    .gesture(DragGesture()
+                        .onChanged { value in
+                            if let index = images.firstIndex(where: { $0.id == item.id }) {
+                                images[index].position = value.location
+                            }
                         }
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .position(x: UIScreen.main.bounds.width - 80, y: 40)
-                        .opacity(showingToolPicker ? 1 : 0)
-                    }
-                    
-                    // Color picker overlay
-                    if showingColorPicker {
-                        ColorPickerView(selectedColor: $selectedPenColor, isShowing: $showingColorPicker)
-                            .zIndex(1)
-                    }
-                }
-                .overlay(toolbar, alignment: .bottom)
-                .sheet(isPresented: $showingImagePicker) {
-                    CustomImagePicker(image: $selectedImage)
-                }
-                .onChange(of: selectedImage) { newImage in
-                    if let newImage = newImage {
-                        images.append(ImageItem(image: newImage, position: CGPoint(x: 150, y: 150)))
-                    }
-                }
-                .onChange(of: selectedPenColor) { _ in
-                    configurePenTool()
-                }
-                .onChange(of: selectedPenType) { _ in
-                    configurePenTool()
-                }
-                
-                
-                // Navigation to saved drawings
-                NavigationLink(destination: MemoryCollectionView(savedDrawings: $savedDrawings)) {
-                    Text("View Saved Drawings")
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(10)
+                    )
+            }
+            
+            if showingToolPicker {
+                Button("Done") {
+                    showingToolPicker = false
+                    toolPicker.setVisible(false, forFirstResponder: canvasView)
                 }
                 .padding()
+                .background(Color.white)
+                .cornerRadius(10)
+                .position(x: UIScreen.main.bounds.width - 80, y: 40)
+                .opacity(showingToolPicker ? 1 : 0)
             }
-            .navigationBarTitle("Freeform Note", displayMode: .inline)
-            .navigationBarItems(
-                leading: Button("Memory Library") {
-                    // Azione per tornare indietro
-                }.foregroundColor(.blue),
-                
-                trailing: Button("Save") {
-                    saveDrawing()
-                }
-                .foregroundColor(.blue)
-            )
+            
+            // Color picker overlay
+            if showingColorPicker {
+                ColorPickerView(selectedColor: $selectedPenColor, isShowing: $showingColorPicker)
+                    .zIndex(1)
+            }
+        }
+        .overlay(toolbar, alignment: .bottom)
+        .sheet(isPresented: $showingImagePicker) {
+            CustomImagePicker(image: $selectedImage)
+        }
+        .onChange(of: selectedImage) { newImage in
+            if let newImage = newImage {
+                images.append(ImageItem(image: newImage, position: CGPoint(x: 150, y: 150)))
+            }
+        }
+        .onChange(of: selectedPenColor) { _ in
+            configurePenTool()
+        }
+        .onChange(of: selectedPenType) { _ in
+            configurePenTool()
         }
     }
     
-    private func saveDrawing() {
-        let savedDrawing = SavedDrawing(textItems: textItems, images: images)
-        savedDrawings.append(savedDrawing)
-    }
-
     private var toolbar: some View {
         HStack(spacing: 20) {
             Button(action: {
@@ -191,6 +182,15 @@ struct FreeformNoteView: View {
                 VStack {
                     Image(systemName: "photo")
                     Text("Image")
+                }
+            }
+            
+            Button(action: {
+                showingColorPicker = true
+            }) {
+                VStack {
+                    Image(systemName: "paintpalette")
+                    Text("Color")
                 }
             }
             
@@ -213,15 +213,6 @@ struct FreeformNoteView: View {
                     Text("Clear")
                 }
             }
-            
-            Button(action: {
-                showingColorPicker = true
-            }) {
-                VStack {
-                    Image(systemName: "paintpalette")
-                    Text("Color")
-                }
-            }
         }
         .padding()
         .background(Color.white.opacity(0.8))
@@ -235,56 +226,8 @@ struct FreeformNoteView: View {
     }
 }
 
-
-struct MemoryCollectionView: View {
-    @Binding var savedDrawings: [SavedDrawing]
-
-    var body: some View {
-        ScrollView {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))]) {
-                ForEach(savedDrawings) { drawing in
-                    NavigationLink(destination: SavedDrawingDetailView(savedDrawing: drawing)) {
-                        VStack {
-                            Image(systemName: "heart.fill") 
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 100, height: 100)
-                                .foregroundColor(.black)
-                                .padding()
-                        }
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(10)
-                        .shadow(radius: 5)
-                    }
-                }
-            }
-        }
-        .padding()
-    }
-}
-
-
-struct SavedDrawingDetailView: View {
-    var savedDrawing: SavedDrawing
-    
-    var body: some View {
-        ForEach(savedDrawing.textItems) { item in
-            Text(item.text)
-                .font(.system(size: item.fontSize))
-                .position(item.position)
-        }
-
-        ForEach(savedDrawing.images) { item in
-            Image(uiImage: item.image)
-                .resizable()
-                .scaledToFit()
-                    .frame(width: 100 * item.scale, height: 100 * item.scale)
-                .position(item.position)
-        }
-    }
-}
-
+// (Keep all other structs from the previous implementation)
+// ColorPickerView, CanvasView, CustomImagePicker remain the same
 struct CanvasView: UIViewRepresentable {
     @Binding var canvasView: PKCanvasView
     @Binding var toolPicker: PKToolPicker
@@ -293,9 +236,13 @@ struct CanvasView: UIViewRepresentable {
     @Binding var selectedPenType: PKInkingTool.InkType
     
     func makeUIView(context: Context) -> PKCanvasView {
-        let canvasView = PKCanvasView()
-        canvasView.delegate = context.coordinator
-        canvasView.drawingPolicy = .anyInput
+        canvasView.drawingPolicy = .default
+        canvasView.isOpaque = false
+        
+        // Initialize tool picker
+        toolPicker.setVisible(false, forFirstResponder: canvasView)
+        toolPicker.addObserver(canvasView)
+        
         return canvasView
     }
     
@@ -303,67 +250,50 @@ struct CanvasView: UIViewRepresentable {
         if showingToolPicker {
             toolPicker.setVisible(true, forFirstResponder: uiView)
             uiView.becomeFirstResponder()
+        } else {
+            toolPicker.setVisible(false, forFirstResponder: uiView)
         }
-    }
-    
-    func makeCoordinator() -> Coordinator {
-        return Coordinator()
-    }
-    
-    class Coordinator: NSObject, PKCanvasViewDelegate {
-        func canvasViewDrawingDidChange(_ canvasView: PKCanvasView) {
-            // Handle drawing change
-        }
+        
+        // Ensure the correct tool is applied to the canvas
+        let tool = PKInkingTool(selectedPenType, color: selectedPenColor, width: 5)
+        uiView.tool = tool
+        toolPicker.selectedTool = tool
     }
 }
 
-struct CustomImagePicker: View {
+struct CustomImagePicker: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     
-    var body: some View {
-            ImagePicker(image: $image)
-        }
-}
-
-struct ColorPickerView: View {
-    @Binding var selectedColor: UIColor
-    @Binding var isShowing: Bool
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        return picker
+    }
     
-    var body: some View {
-        VStack {
-            ColorPicker("Pick a color", selection: Binding(
-                get: { Color(selectedColor) },
-                set: { selectedColor = UIColor($0) }
-            ))
-            Button("Close") {
-                isShowing = false
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: CustomImagePicker
+        
+        init(_ parent: CustomImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.image = image
             }
-            .padding()
+            picker.dismiss(animated: true)
         }
-        .padding()
-        .background(Color.white)
-        .cornerRadius(10)
-        .shadow(radius: 10)
     }
 }
 
-
-struct SimultaneousGesture: Gesture {
-    let first: DragGesture
-    let second: MagnificationGesture
-    
-    init(_ first: DragGesture, _ second: MagnificationGesture) {
-        self.first = first
-        self.second = second
-    }
-    
-    var body: some Gesture {
-        first.simultaneously(with: second)
-    }
-}
-
-struct FreeformNoteView_Previews: PreviewProvider {
-    static var previews: some View {
-        FreeformNoteView()
-    }
-}
+//struct FreeformNoteView_Previews: PreviewProvider {
+//    static var previews: some View {
+//        FreeformNoteView(book: MemoryBook, pageContent: )
+//    }
+//}
