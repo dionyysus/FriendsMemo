@@ -9,9 +9,15 @@ import SwiftUI
 
 @main
 struct FriendsMemoApp: App {
+    @State private var showSplash = true
+
     var body: some Scene {
         WindowGroup {
-            FriendsView()
+            if showSplash {
+                SplashScreenView(showSplash: $showSplash)
+            } else {
+                FriendsView()
+            }
         }
     }
 }
