@@ -25,9 +25,7 @@ struct BookDetailView: View {
         ZStack {
             Color.white.edgesIgnoringSafeArea(.all)
             
-            // Main content
             if isEditing, let index = editingPageIndex {
-                // Fullscreen editing view using FreeformNoteView
                 VStack {
                     HStack {
                         Spacer()
@@ -75,14 +73,13 @@ struct BookDetailView: View {
                             ForEach(0..<pages.count, id: \.self) { index in
                                 VStack {
                                     PagePreviewView(pageData: pages[index])
-                                        .frame(maxWidth: 350, maxHeight: 400)
+                                        .frame(maxWidth: 350, maxHeight: 600)
                                         .background(book.color.toSwiftUIColor().opacity(0.2))
                                         .cornerRadius(10)
                                         .shadow(radius: 5)
                                         .tag(index)
                                         .transition(.opacity)
                                     
-                                    // Edit button for each page
                                     Button(action: {
                                         editingPageIndex = index
                                         isEditing = true
@@ -165,12 +162,8 @@ struct PagePreviewView: View {
     
     var body: some View {
         VStack {
-            Text(pageData.title)
-                .font(.headline)
-                .padding(.top)
-            
+           
             if !pageData.textItems.isEmpty || !pageData.images.isEmpty || !pageData.drawing.bounds.isEmpty {
-               
                 
                 ZStack {
                     if !pageData.drawing.bounds.isEmpty {
@@ -189,11 +182,11 @@ struct PagePreviewView: View {
                         Image(uiImage: item.image)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 50, height: 50)
+                            .frame(width: 80, height: 80)
                             .position(item.position)
                     }
                 }
-                .frame(height: 200)
+                .frame(width: 350, height: 600)
                 .clipped()
             } else {
                 Text("Empty page")
@@ -345,27 +338,11 @@ struct FreeformNoteView1: View {
             }
             
             Button(action: {
-                showingColorPicker = true
-            }) {
-                VStack {
-                    Image(systemName: "paintpalette")
-                    Text("Color")
-                }
-            }
-            
-            Button(action: {
                 showingToolPicker.toggle()
             }) {
                 VStack {
                     Image(systemName: "pencil")
                     Text("Pen")
-                }
-            }
-            
-            Button(action: saveChanges) {
-                VStack {
-                    Image(systemName: "square.and.arrow.down")
-                    Text("Save")
                 }
             }
             
