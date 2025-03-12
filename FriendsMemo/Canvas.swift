@@ -291,9 +291,3 @@ struct CustomImagePicker: UIViewControllerRepresentable {
         }
     }
 }
-
-//struct FreeformNoteView_Previews: PreviewProvider {
-//    static var previews: some View {
-//        FreeformNoteView(book: MemoryBook, pageContent: )
-//    }
-//}

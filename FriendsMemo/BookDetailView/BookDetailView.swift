@@ -105,26 +105,26 @@ struct BookDetailView: View {
         .navigationTitle(book.name)
         .navigationBarTitleDisplayMode(.inline)
         .navigationBarItems(trailing:
-            Button(action: {
-                withAnimation {
-                    let newPage = PageData(
-                        title: "Page \(pages.count + 1)",
-                        drawing: PKDrawing(),
-                        textItems: [],
-                        images: []
-                    )
-                    pages.append(newPage)
-                    currentPage = pages.count - 1
-                    animatePageChange.toggle()
-                    savePagesToUserDefaults()
-                }
-            }) {
-                Image(systemName: "plus.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 30, height: 30)
-                    .foregroundColor(book.color.toSwiftUIColor())
+                                Button(action: {
+            withAnimation {
+                let newPage = PageData(
+                    title: "Page \(pages.count + 1)",
+                    drawing: PKDrawing(),
+                    textItems: [],
+                    images: []
+                )
+                pages.append(newPage)
+                currentPage = pages.count - 1
+                animatePageChange.toggle()
+                savePagesToUserDefaults()
             }
+        }) {
+            Image(systemName: "plus.circle.fill")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 30, height: 30)
+                .foregroundColor(book.color.toSwiftUIColor())
+        }
         )
         .onAppear {
             loadPagesFromUserDefaults()
@@ -158,11 +158,10 @@ struct BookDetailView: View {
 // Preview for a page
 struct PagePreviewView: View {
     let pageData: PageData
-//    let bookColor: BookColor
     
     var body: some View {
         VStack {
-           
+            
             if !pageData.textItems.isEmpty || !pageData.images.isEmpty || !pageData.drawing.bounds.isEmpty {
                 
                 ZStack {
