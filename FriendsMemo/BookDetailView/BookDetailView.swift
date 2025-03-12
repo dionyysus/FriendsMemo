@@ -16,145 +16,178 @@ struct BookDetailView: View {
     @State private var animatePageChange = false
     @State private var isEditing = false
     @State private var editingPageIndex: Int?
-    
+    @State private var isDeleting = false
+
+
     private var pagesKey: String {
         return "bookPages_\(book.id.uuidString)"
     }
-    
+
     var body: some View {
         ZStack {
             Color.white.edgesIgnoringSafeArea(.all)
-            
-            if isEditing, let index = editingPageIndex {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            savePage(at: index)
-                            isEditing = false
-                            editingPageIndex = nil
-                        }) {
-                            HStack {
-                                Text("Done")
+
+            VStack {
+                if isEditing, let index = editingPageIndex {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                savePage(at: index)
+                                isEditing = false
+                                editingPageIndex = nil
+                            }) {
                                 Image(systemName: "checkmark.circle.fill")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 30, height: 25)
+                                    .foregroundColor(.blue)
+                                    .padding()
                             }
-                            .padding(8)
-                            .background(book.color.toSwiftUIColor().opacity(0.3))
-                            .cornerRadius(8)
-                            .padding()
                         }
+
+                        FreeformNoteView1(
+                            book: book,
+                            pageContent: pages[index].title,
+                            savedDrawing: pages[index].drawing,
+                            savedTextItems: pages[index].textItems,
+                            savedImages: pages[index].images,
+                            onSave: { drawing, textItems, images in
+                                pages[index].drawing = drawing
+                                pages[index].textItems = textItems
+                                pages[index].images = images
+                                savePagesToUserDefaults()
+                            }
+                        )
                     }
-                    
-                    FreeformNoteView1(
-                        book: book,
-                        pageContent: pages[index].title,
-                        savedDrawing: pages[index].drawing,
-                        savedTextItems: pages[index].textItems,
-                        savedImages: pages[index].images,
-                        onSave: { drawing, textItems, images in
-                            pages[index].drawing = drawing
-                            pages[index].textItems = textItems
-                            pages[index].images = images
-                            savePagesToUserDefaults()
-                        }
-                    )
-                }
-                .transition(.move(edge: .bottom))
-            } else {
-                // Normal view
-                VStack {
-                    if pages.isEmpty {
-                        Text("No Memories")
-                            .font(.title)
-                            .padding()
-                            .foregroundColor(.gray)
-                    } else {
-                        TabView(selection: $currentPage) {
-                            ForEach(0..<pages.count, id: \.self) { index in
-                                VStack {
-                                    PagePreviewView(pageData: pages[index])
-                                        .frame(maxWidth: 350, maxHeight: 600)
-                                        .background(book.color.toSwiftUIColor().opacity(0.2))
-                                        .cornerRadius(10)
-                                        .shadow(radius: 5)
-                                        .tag(index)
-                                        .transition(.opacity)
-                                    
-                                    Button(action: {
-                                        editingPageIndex = index
-                                        isEditing = true
-                                    }) {
-                                        HStack {
-                                            Image(systemName: "pencil")
-                                            Text("Edit")
-                                        }
-                                        .padding(8)
-                                        .background(book.color.toSwiftUIColor().opacity(0.3))
-                                        .cornerRadius(8)
+                    .transition(.move(edge: .bottom))
+                } else {
+                    VStack {
+                        if pages.isEmpty {
+                            Text("No Memories")
+                                .font(.title)
+                                .padding()
+                                .foregroundColor(.gray)
+                        } else {
+                            TabView(selection: $currentPage) {
+                                ForEach(0..<pages.count, id: \.self) { index in
+                                    VStack {
+                                        PagePreviewView(pageData: pages[index])
+                                            .frame(maxWidth: 350, maxHeight: 600)
+                                            .background(book.color.toSwiftUIColor().opacity(0.2))
+                                            .cornerRadius(10)
+                                            .shadow(radius: 5)
+                                            .tag(index)
+                                            .transition(.opacity)
                                     }
                                 }
                             }
+                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+                            .animation(.easeInOut(duration: 0.5), value: animatePageChange)
                         }
-                        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                        .animation(.easeInOut(duration: 0.5), value: animatePageChange)
                     }
+                }
+            }
+
+            // ✅ **Pulsanti posizionati correttamente sotto la pagina**
+            if !isEditing {
+                VStack {
                     Spacer()
+                    
+                    HStack(spacing: 20) { // Spazio tra i pulsanti regolato
+                        Button(action: {
+                            editingPageIndex = currentPage
+                            isEditing = true
+                        }) {
+                            Image(systemName: "pencil")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 35, height: 30)
+                                .foregroundColor(.black)
+                        }
+
+                        Button(action: deleteCurrentPage) {
+                            Image(systemName: "trash")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 40, height: 30)
+                                .foregroundColor(.black)
+                        }
+
+                        Button(action: addNewPage) {
+                            Image(systemName: "plus.circle.fill")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 45, height: 30)
+                                .foregroundColor(.black)
+                        }
+                    }
+                    .padding(.bottom, 30)
                 }
             }
         }
         .navigationTitle(book.name)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarItems(trailing:
-                                Button(action: {
-            withAnimation {
-                let newPage = PageData(
-                    title: "Page \(pages.count + 1)",
-                    drawing: PKDrawing(),
-                    textItems: [],
-                    images: []
-                )
-                pages.append(newPage)
-                currentPage = pages.count - 1
-                animatePageChange.toggle()
-                savePagesToUserDefaults()
-            }
-        }) {
-            Image(systemName: "plus.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 30, height: 30)
-                .foregroundColor(book.color.toSwiftUIColor())
-        }
-        )
         .onAppear {
             loadPagesFromUserDefaults()
         }
     }
-    
+
+    private func addNewPage() {
+        withAnimation {
+            let newPage = PageData(
+                title: "Page \(pages.count + 1)",
+                drawing: PKDrawing(),
+                textItems: [],
+                images: []
+            )
+            pages.append(newPage)
+            currentPage = pages.count - 1
+            animatePageChange.toggle()
+            savePagesToUserDefaults()
+        }
+    }
+
+    // 🗑️ **Cancella la pagina attuale**
+    private func deleteCurrentPage() {
+        guard !pages.isEmpty else { return }
+        
+        withAnimation(.easeInOut(duration: 0.5)) {
+            isDeleting = true  // Attiva l'animazione di chiusura
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            withAnimation {
+                pages.remove(at: currentPage)
+                currentPage = max(0, currentPage - 1)
+                isDeleting = false  // Resetta lo stato per le altre pagine
+                savePagesToUserDefaults()
+            }
+        }
+    }
+
     private func savePage(at index: Int) {
         savePagesToUserDefaults()
     }
-    
+
     private func loadPagesFromUserDefaults() {
         if let savedData = UserDefaults.standard.data(forKey: pagesKey) {
             if let decodedPages = try? JSONDecoder().decode([PageData].self, from: savedData) {
                 pages = decodedPages
             } else {
-                // Fallback for older storage format
                 if let savedPages = UserDefaults.standard.object(forKey: pagesKey) as? [String] {
                     pages = savedPages.map { PageData(title: $0, drawing: PKDrawing(), textItems: [], images: []) }
                 }
             }
         }
     }
-    
+
     private func savePagesToUserDefaults() {
         if let encodedData = try? JSONEncoder().encode(pages) {
             UserDefaults.standard.set(encodedData, forKey: pagesKey)
         }
     }
 }
-
 // Preview for a page
 struct PagePreviewView: View {
     let pageData: PageData
