@@ -9,7 +9,7 @@ struct BookView: View {
                 Image("BookCover")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 320, height: 420)
+                    .frame(width: 320, height: 240)
                     .colorMultiply(book.color.toSwiftUIColor())
                     .shadow(radius: 10)
 
@@ -77,14 +77,14 @@ struct FriendsView: View {
                 Text("Memory Library")
                     .font(.largeTitle)
                     .bold()
-                    .padding(.top, 10)
+                    .padding(.top, 40)
                 
                 if books.isEmpty {
                     VStack {
                         Image("BookCover")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 200, height: 250)
+                            .frame(width: 300, height: 250)
                             .opacity(0.9)
 
                         Text("No Memories Yet")
@@ -101,24 +101,23 @@ struct FriendsView: View {
                                 GeometryReader { geometry in
                                     let minX = geometry.frame(in: .global).minX
                                     let rotationAngle = Angle(degrees: Double(minX - 100) / -15.0)
-                                    let scale = max(0.8, 1.0 - abs(Double(minX - 100)) / 500.0)  // Adjusted scale
-                                    let opacity = max(0.6, 1.2 - abs(Double(minX - 100)) / 300.0) // Adjusted opacity
-                                    let offsetX = minX / 15
+                                    let scale = max(0.85, 1.0 - abs(Double(minX - 100)) / 500.0)
+                                    let opacity = max(0.7, 1.2 - abs(Double(minX - 100)) / 300.0)
+                                    let offsetX = minX / 20
 
                                     NavigationLink(destination: BookDetailView(book: books[index])) {
                                         BookView(book: books[index])
-                                            .frame(width: 250, height: 300)
+                                            .frame(width: 350, height: 400)
                                     }
-                                        .rotation3DEffect(rotationAngle, axis: (x: 0, y: 1.0, z: 0))
-                                        .scaleEffect(scale)
-                                        .opacity(opacity)
-                                        .offset(x: offsetX)
-                                    
+                                    .rotation3DEffect(rotationAngle, axis: (x: 0, y: 1.0, z: 0))
+                                    .scaleEffect(scale)
+                                    .opacity(opacity)
+                                    .offset(x: offsetX)
                                 }
-                                .frame(width: 250, height: 350)
+                                .frame(width: 200, height: 400)
                             }
                         }
-                        .padding(.horizontal, 60)
+                        .padding(.horizontal, 30)
                     }
                 }
             }
