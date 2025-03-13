@@ -11,9 +11,9 @@ struct Friend: Identifiable, Codable {
     let id = UUID()
     let name: String
     let emoji: String
-    private var colorName: String // ✅ Salvare il colore come stringa
+    private var colorName: String 
 
-    var color: Color { // ✅ Convertire il colore dalla stringa
+    var color: Color {
         switch colorName {
         case "blue": return .blue
         case "red": return .red

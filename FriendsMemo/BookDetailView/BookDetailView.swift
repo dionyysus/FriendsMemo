@@ -5,134 +5,327 @@
 //  Created by Gizem Coskun on 11/03/25.
 //
 
-
 import SwiftUI
 import PencilKit
 
+// MARK: - BookDetailView
 struct BookDetailView: View {
     let book: MemoryBook
+    
     @State private var currentPage = 0
     @State private var pages: [PageData] = []
     @State private var animatePageChange = false
     @State private var isEditing = false
     @State private var editingPageIndex: Int?
     @State private var isDeleting = false
-
-
+    @State private var showClearAlert = false
+    @State private var showToolPicker = false
+    
     private var pagesKey: String {
         return "bookPages_\(book.id.uuidString)"
     }
-
+    
     var body: some View {
         ZStack {
-            Color.white.edgesIgnoringSafeArea(.all)
-
-            VStack {
-                if isEditing, let index = editingPageIndex {
-                    VStack {
-                        HStack {
-                            Spacer()
-                            Button(action: {
-                                savePage(at: index)
-                                isEditing = false
-                                editingPageIndex = nil
-                            }) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 30, height: 25)
-                                    .foregroundColor(.blue)
-                                    .padding()
-                            }
-                        }
-
-                        FreeformNoteView1(
-                            book: book,
-                            pageContent: pages[index].title,
-                            savedDrawing: pages[index].drawing,
-                            savedTextItems: pages[index].textItems,
-                            savedImages: pages[index].images,
-                            onSave: { drawing, textItems, images in
-                                pages[index].drawing = drawing
-                                pages[index].textItems = textItems
-                                pages[index].images = images
-                                savePagesToUserDefaults()
-                            }
-                        )
-                    }
-                    .transition(.move(edge: .bottom))
-                } else {
-                    VStack {
-                        if pages.isEmpty {
-                            Text("No Memories")
-                                .font(.title)
-                                .padding()
-                                .foregroundColor(.gray)
-                        } else {
-                            TabView(selection: $currentPage) {
-                                ForEach(0..<pages.count, id: \.self) { index in
-                                    VStack {
-                                        PagePreviewView(pageData: pages[index])
-                                            .frame(maxWidth: 350, maxHeight: 600)
-                                            .background(book.color.toSwiftUIColor().opacity(0.2))
-                                            .cornerRadius(10)
-                                            .shadow(radius: 5)
-                                            .tag(index)
-                                            .transition(.opacity)
-                                    }
-                                }
-                            }
-                            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
-                            .animation(.easeInOut(duration: 0.5), value: animatePageChange)
-                        }
-                    }
+            Color(red: 0.93, green: 0.91, blue: 0.88)
+                .edgesIgnoringSafeArea(.all)
+            
+            VStack(spacing: 20) {
+                if !isEditing {
+                    Text(book.name)
+                        .font(.system(size: 20, weight: .medium))
+                        .kerning(1)
+                        .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.25))
+                        .padding(.top, 15)
                 }
+                
+                pagesTabView
+                    .padding(.bottom, isEditing ? 20 : 80)
+                
+                Spacer()
             }
-
-            // ✅ **Pulsanti posizionati correttamente sotto la pagina**
-            if !isEditing {
-                VStack {
-                    Spacer()
-                    
-                    HStack(spacing: 20) { // Spazio tra i pulsanti regolato
-                        Button(action: {
-                            editingPageIndex = currentPage
-                            isEditing = true
-                        }) {
-                            Image(systemName: "pencil")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 35, height: 30)
-                                .foregroundColor(.black)
-                        }
-
-                        Button(action: deleteCurrentPage) {
-                            Image(systemName: "trash")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 40, height: 30)
-                                .foregroundColor(.black)
-                        }
-
-                        Button(action: addNewPage) {
-                            Image(systemName: "plus.circle.fill")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 45, height: 30)
-                                .foregroundColor(.black)
-                        }
-                    }
-                    .padding(.bottom, 30)
-                }
+            
+            
+            
+            if !showToolPicker {
+                toolbarView
+                    .zIndex(100)
             }
         }
-        .navigationTitle(book.name)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadPagesFromUserDefaults()
         }
+        
+        
     }
-
+    
+    
+    // MARK: Views
+    private var pagesTabView: some View {
+        VStack {
+            TabView(selection: $currentPage) {
+                ForEach(0..<pages.count, id: \.self) { index in
+                    VStack {
+                        if isEditing && editingPageIndex == index {
+                            editingPageView(for: index)
+                        } else {
+                            pagePreviewView(for: index)
+                        }
+                    }
+                    .tag(index)
+                    .transition(.opacity)
+                }
+            }
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .always))
+            .animation(.easeInOut(duration: 0.3), value: animatePageChange)
+            .overlay(
+                Group {
+                    if pages.isEmpty {
+                        emptyStateView
+                    }
+                }
+            )
+        }
+    }
+    
+    private func editingPageView(for index: Int) -> some View {
+        FreeformNoteView1(
+            book: book,
+            pageContent: pages[index].title,
+            savedDrawing: pages[index].drawing,
+            savedTextItems: pages[index].textItems,
+            savedImages: pages[index].images,
+            isEditMode: $isEditing,
+            showToolPicker: Binding(
+                get: { pages[index].showToolPicker },
+                set: { newValue in
+                    pages[index].showToolPicker = newValue
+                    showToolPicker = newValue
+                    savePagesToUserDefaults()
+                }
+            ),
+            showImagePicker: Binding(
+                get: { pages[index].showImagePicker },
+                set: { pages[index].showImagePicker = $0 }
+            ),
+            enterTextPlacement: Binding(
+                get: { pages[index].enterTextPlacementMode },
+                set: { pages[index].enterTextPlacementMode = $0 }
+            ),
+            onSave: { drawing, textItems, images in
+                pages[index].drawing = drawing
+                pages[index].textItems = textItems
+                pages[index].images = images
+                pages[index].showToolPicker = showToolPicker  // Eşitleme
+                savePagesToUserDefaults()
+            },
+            onDone: {
+                savePage(at: currentPage)
+                isEditing = false
+                editingPageIndex = nil
+            },
+            onDelete: deleteCurrentPage,
+            onAddPage: addNewPage
+        )
+        .frame(width: 350, height: 500)
+        .background(Color.white)
+        .cornerRadius(4)
+        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+        .overlay(
+            VStack {
+                Spacer()
+                Rectangle()
+                    .fill(book.color.toSwiftUIColor())
+                    .frame(height: 20)
+            }
+                .frame(width: 350, height: 500)
+                .clipShape(RoundedRectangle(cornerRadius: 4))
+                .allowsHitTesting(false)
+        )
+    }
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                .frame(width: 240, height: 280)
+            
+            Text("No memories yet")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(Color.gray.opacity(0.7))
+                .kerning(0.5)
+            
+            Text("Tap + to add your first page")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(Color.gray.opacity(0.5))
+                .kerning(0.5)
+        }
+    }
+    
+    
+    private func pagePreviewView(for index: Int) -> some View {
+        ZStack {
+            VStack {
+                Rectangle()
+                    .fill(Color.white)
+                    .frame(width: 350, height: 500)
+                    .cornerRadius(4)
+                    .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+                
+                Spacer().frame(height: 0)
+            }
+            
+            VStack {
+                Spacer()
+                Rectangle()
+                    .fill(book.color.toSwiftUIColor())
+                    .frame(height: 20)
+            }
+            .frame(width: 350, height: 500)
+            .clipShape(RoundedRectangle(cornerRadius: 4))
+            
+            VStack {
+                PagePreviewView(pageData: pages[index])
+                    .frame(width: 350, height: 500)
+            }
+            
+            VStack {
+                Spacer()
+                HStack {
+                    Text("Page \(index + 1)")
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(.white)
+                    
+                    Spacer()
+                    
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 2)
+            }
+            .frame(width: 350, height: 500)
+        }
+        .onTapGesture {
+            editingPageIndex = index
+            isEditing = true
+        }
+    }
+    
+    private var toolbarView: some View {
+        VStack {
+            Spacer()
+            
+            if !showToolPicker {
+                HStack(spacing: 30) {
+                    Button(action: {
+                        if isEditing {
+                            savePage(at: currentPage)
+                            isEditing = false
+                            editingPageIndex = nil
+                        } else {
+                            editingPageIndex = currentPage
+                            isEditing = true
+                        }
+                    }) {
+                        Image(systemName: isEditing ? "checkmark" : "pencil")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            .frame(width: 40, height: 40)
+                    }
+                    
+                    if isEditing {
+                        editingToolbarButtons
+                    } else {
+                        viewingToolbarButtons
+                    }
+                }
+                .padding(.horizontal, 30)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white)
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                )
+                .padding(.bottom, 30)
+                .padding(.top, 30)
+            }
+        }
+    }
+    private var editingToolbarButtons: some View {
+        Group {
+            Button(action: addTextToPage) {
+                Image(systemName: "text.alignleft")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .frame(width: 40, height: 25)
+            }
+            
+            Button(action: showImagePickerForPage) {
+                Image(systemName: "photo")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .frame(width: 40, height: 40)
+            }
+            
+            Button(action: toggleDrawingMode) {
+                Image(systemName: "pencil.tip")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .frame(width: 40, height: 25)
+            }
+        }
+    }
+    
+    private func toggleDrawingMode() {
+        if let index = editingPageIndex {
+            pages[index].showToolPicker = true
+            showToolPicker = true
+            savePagesToUserDefaults()
+        }
+    }
+    
+    private func toggleToolPicker() {
+        if let index = editingPageIndex {
+            pages[index].showToolPicker.toggle()
+            showToolPicker = pages[index].showToolPicker
+            savePagesToUserDefaults()
+        }
+    }
+    
+    private var viewingToolbarButtons: some View {
+        Group {
+            Button(action: deleteCurrentPage) {
+                Image(systemName: "trash")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .frame(width: 40, height: 40)
+            }
+            .disabled(pages.isEmpty)
+            .opacity(pages.isEmpty ? 0.3 : 1.0)
+            
+            Button(action: addNewPage) {
+                Image(systemName: "plus")
+                    .font(.system(size: 16))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .frame(width: 40, height: 40)
+            }
+        }
+    }
+    
+    // MARK: Actions
+    private func addTextToPage() {
+        if let index = editingPageIndex {
+            pages[index].enterTextPlacementMode = true
+            savePagesToUserDefaults()
+        }
+    }
+    
+    private func showImagePickerForPage() {
+        if let index = editingPageIndex {
+            pages[index].showImagePicker = true
+            savePagesToUserDefaults()
+        }
+    }
+    
     private func addNewPage() {
         withAnimation {
             let newPage = PageData(
@@ -147,29 +340,29 @@ struct BookDetailView: View {
             savePagesToUserDefaults()
         }
     }
-
-    // 🗑️ **Cancella la pagina attuale**
+    
     private func deleteCurrentPage() {
         guard !pages.isEmpty else { return }
         
-        withAnimation(.easeInOut(duration: 0.5)) {
-            isDeleting = true  // Attiva l'animazione di chiusura
+        withAnimation(.easeInOut(duration: 0.3)) {
+            isDeleting = true
         }
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation {
                 pages.remove(at: currentPage)
                 currentPage = max(0, currentPage - 1)
-                isDeleting = false  // Resetta lo stato per le altre pagine
+                isDeleting = false
                 savePagesToUserDefaults()
             }
         }
     }
-
+    
     private func savePage(at index: Int) {
         savePagesToUserDefaults()
     }
-
+    
+    // MARK: Data Management
     private func loadPagesFromUserDefaults() {
         if let savedData = UserDefaults.standard.data(forKey: pagesKey) {
             if let decodedPages = try? JSONDecoder().decode([PageData].self, from: savedData) {
@@ -181,53 +374,589 @@ struct BookDetailView: View {
             }
         }
     }
-
+    
     private func savePagesToUserDefaults() {
         if let encodedData = try? JSONEncoder().encode(pages) {
             UserDefaults.standard.set(encodedData, forKey: pagesKey)
         }
     }
+    
+    private func clearPageContent() {
+        guard !pages.isEmpty, let index = editingPageIndex else { return }
+        
+        pages[index].drawing = PKDrawing()
+        pages[index].textItems = []
+        pages[index].images = []
+        pages[index].showToolPicker = false
+        
+        savePagesToUserDefaults()
+        
+        let currentIndex = index
+        isEditing = false
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            editingPageIndex = currentIndex
+            isEditing = true
+        }
+    }
 }
-// Preview for a page
+
+
+// MARK: - FreeformNoteView1
+struct FreeformNoteView1: View {
+    // MARK: Properties
+    let book: MemoryBook
+    let pageContent: String
+    var savedDrawing: PKDrawing
+    var savedTextItems: [TextItem]
+    var savedImages: [ImageItem]
+    
+    @Binding var isEditMode: Bool
+    @Binding var showToolPicker: Bool
+    @Binding var showImagePicker: Bool
+    @Binding var enterTextPlacement: Bool
+    
+    var onSave: (PKDrawing, [TextItem], [ImageItem]) -> Void
+    var onDone: () -> Void
+    var onDelete: () -> Void
+    var onAddPage: () -> Void
+    
+    @State private var textItems: [TextItem] = []
+    @State private var images: [ImageItem] = []
+    @State private var selectedImage: UIImage?
+    @State private var canvasView = PKCanvasView()
+    @State private var toolPicker = PKToolPicker()
+    @State private var selectedPenColor: UIColor = .black
+    @State private var selectedPenType: PKInkingTool.InkType = .pen
+    @State private var isInteractionEnabled = true
+    
+    // Text editing state
+    @State private var editingTextItem: UUID? = nil
+    @State private var editingText: String = ""
+    
+    // Text placement state
+    @State private var isPlacingNewText = false
+    @State private var pendingTextItem: TextItem?
+    
+    // Content dimensions
+    private let contentWidth: CGFloat = 350
+    private let contentHeight: CGFloat = 500
+    
+    // Format current date
+    func formattedDate() -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "dd.MM.yyyy"
+        return dateFormatter.string(from: Date())
+    }
+    
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .center) {
+                // Clean white background
+                Rectangle()
+                    .fill(Color.white)
+                    .frame(width: contentWidth, height: contentHeight)
+                
+                CanvasView(
+                    canvasView: $canvasView,
+                    toolPicker: $toolPicker,
+                    showingToolPicker: $showToolPicker,
+                    selectedPenColor: $selectedPenColor,
+                    selectedPenType: $selectedPenType,
+                    isInteractionEnabled: $isInteractionEnabled
+                )
+                .frame(width: contentWidth, height: contentHeight)
+                
+                TextItemsLayer(
+                    textItems: $textItems,
+                    editingTextItem: $editingTextItem,
+                    editingText: $editingText,
+                    contentWidth: contentWidth,
+                    contentHeight: contentHeight,
+                    onSave: saveChanges
+                )
+                .allowsHitTesting(!showToolPicker)
+                
+                ImageItemsLayer(
+                    images: $images,
+                    contentWidth: contentWidth,
+                    contentHeight: contentHeight,
+                    onSave: saveChanges
+                )
+                .allowsHitTesting(!showToolPicker)
+                
+                // Text placement overlay
+                if isPlacingNewText {
+                    textPlacementOverlay
+                }
+                
+                // Page info overlay at the bottom
+                VStack {
+                    Spacer()
+                    
+                    // Bottom color band with date
+                    ZStack {
+                        Rectangle()
+                            .fill(book.color.toSwiftUIColor())
+                            .frame(height: 20)
+                        
+                        HStack {
+                            Text("Editing")
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundColor(.white)
+                            
+                            Spacer()
+                            
+                            Text(formattedDate())
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundColor(.white)
+                        }
+                        .padding(.horizontal, 20)
+                    }
+                }
+                .frame(width: contentWidth, height: contentHeight)
+                .allowsHitTesting(false)
+                
+                if showToolPicker {
+                    VStack {
+                        HStack {
+                            Spacer()
+                            
+                            Button(action: {
+                                toolPicker.setVisible(false, forFirstResponder: canvasView)
+                                isInteractionEnabled = false
+                                showToolPicker = false
+                                
+                                saveChanges()
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                    onSave(canvasView.drawing, textItems, images)
+                                }
+                            }) {
+                                Text("Done")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        Capsule()
+                                            .fill(Color.white.opacity(0.9))
+                                            .shadow(color: Color.black.opacity(0.08), radius: 4, x: 0, y: 2)
+                                    )
+                            }
+                            .padding(.trailing, 10)
+                            .padding(.top, 10)
+                        }
+                        
+                        Spacer()
+                    }
+                    .frame(width: contentWidth, height: contentHeight)
+                    .allowsHitTesting(true)
+                    .zIndex(100)
+                }
+            }
+            .frame(width: contentWidth, height: contentHeight)
+            .cornerRadius(4)
+            .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+        }
+        .sheet(isPresented: $showImagePicker) {
+            ImagePicker(selectedImage: $selectedImage)
+        }
+        .onChange(of: selectedImage) { newImage in
+            if let newImage = newImage {
+                let newImageItem = ImageItem(
+                    image: newImage,
+                    position: CGPoint(x: contentWidth / 2, y: contentHeight / 2)
+                )
+                images.append(newImageItem)
+                saveChanges()
+                selectedImage = nil
+                showImagePicker = false
+            }
+        }
+        .onAppear(perform: configureOnAppear)
+        .onDisappear {
+            toolPicker.setVisible(false, forFirstResponder: canvasView)
+            saveChanges()
+        }
+        .onChange(of: showToolPicker) { newValue in
+            isInteractionEnabled = newValue
+            updateToolPickerVisibility()
+        }
+        .onChange(of: enterTextPlacement) { newValue in
+            if newValue {
+                isPlacingNewText = true
+                pendingTextItem = TextItem(
+                    text: "Tap to edit",
+                    position: CGPoint(x: contentWidth / 2, y: contentHeight / 2)
+                )
+                enterTextPlacement = false
+            }
+        }
+    }
+    
+    
+    // MARK: Views
+    private var textPlacementOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.001)
+                .frame(width: contentWidth, height: contentHeight)
+                .contentShape(Rectangle())
+                .onTapGesture { location in
+                    placeText(at: location)
+                }
+            
+            if let item = pendingTextItem {
+                Text(item.text)
+                    .font(.system(size: 16))
+                    .foregroundColor(.black)
+                    .padding(8)
+                    .background(Color.white.opacity(0.7))
+                    .cornerRadius(4)
+                    .position(item.position)
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+    
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                .frame(width: 240, height: 280)
+            
+            Text("No memories yet")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(.black)
+                .kerning(0.5)
+            
+            Text("Tap + to add your first page")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(.black)
+                .kerning(0.5)
+        }
+    }
+    
+    // MARK: Helper Methods
+    private func placeText(at location: CGPoint) {
+        if let item = pendingTextItem {
+            var newItem = item
+            newItem.position = location
+            textItems.append(newItem)
+            saveChanges()
+            
+            editingTextItem = newItem.id
+            editingText = newItem.text
+            
+            isPlacingNewText = false
+            pendingTextItem = nil
+        }
+    }
+    
+    private func configureOnAppear() {
+        // Initialize with saved data
+        canvasView.drawing = savedDrawing
+        textItems = savedTextItems
+        images = savedImages
+        
+        // Initialize the tool picker
+        toolPicker = PKToolPicker()
+        toolPicker.addObserver(canvasView)
+        configurePenTool()
+        setupToolPicker()
+        
+        // Make sure interaction state matches tool picker state
+        isInteractionEnabled = showToolPicker
+        
+        if showToolPicker {
+            updateToolPickerVisibility()
+        }
+    }
+    
+    private func configurePenTool() {
+        let tool = PKInkingTool(selectedPenType, color: selectedPenColor, width: 5)
+        canvasView.tool = tool
+    }
+    
+    private func saveChanges() {
+        onSave(canvasView.drawing, textItems, images)
+    }
+    
+    private func setupToolPicker() {
+        toolPicker.colorUserInterfaceStyle = .light
+        
+        toolPicker.selectedTool = PKInkingTool(selectedPenType, color: selectedPenColor, width: 5)
+        
+        toolPicker.showsDrawingPolicyControls = false
+    }
+    
+    private func setToolPickerFrameSize() {
+        DispatchQueue.main.async {
+            if let window = UIApplication.shared.windows.first {
+                let toolbarHeight: CGFloat = 100
+                
+                let toolbarFrame = CGRect(
+                    x: 0,
+                    y: window.bounds.height - toolbarHeight - window.safeAreaInsets.bottom,
+                    width: window.bounds.width,
+                    height: toolbarHeight + window.safeAreaInsets.bottom
+                )
+                
+                if #available(iOS 14.0, *) {
+                    self.toolPicker.frameObscured(in: self.canvasView)
+                    
+                    self.canvasView.contentInset = UIEdgeInsets(
+                        top: 0,
+                        left: 0,
+                        bottom: toolbarHeight + window.safeAreaInsets.bottom,
+                        right: 0
+                    )
+                } else {
+                    // For iOS 13
+                    let obscuredInsets = UIEdgeInsets(
+                        top: 0,
+                        left: 0,
+                        bottom: toolbarHeight + window.safeAreaInsets.bottom,
+                        right: 0
+                    )
+                    self.canvasView.contentInset = obscuredInsets
+                    self.toolPicker.frameObscured(in: window)
+                }
+                
+                self.canvasView.becomeFirstResponder()
+            }
+        }
+    }
+    
+    private func updateToolPickerVisibility() {
+        DispatchQueue.main.async {
+            if self.showToolPicker {
+                // Full screen drawing mode
+                self.setToolPickerFrameSize()
+                self.canvasView.becomeFirstResponder()
+                self.toolPicker.setVisible(true, forFirstResponder: self.canvasView)
+            } else {
+                // Hide drawing tools
+                self.toolPicker.setVisible(false, forFirstResponder: self.canvasView)
+            }
+        }
+    }
+}
+
+
+struct TextItemsLayer: View {
+    @Binding var textItems: [TextItem]
+    @Binding var editingTextItem: UUID?
+    @Binding var editingText: String
+    let contentWidth: CGFloat
+    let contentHeight: CGFloat
+    let onSave: () -> Void
+    
+    var body: some View {
+        ZStack {
+            ForEach(textItems) { item in
+                if editingTextItem == item.id {
+                    // Text editor with minimal style
+                    ZStack(alignment: .center) {
+                        TextField("", text: $editingText, onCommit: finishEditingText)
+                            .font(.system(size: 16))
+                            .foregroundColor(.black) // Metin rengini siyah yapma
+                            .multilineTextAlignment(.center)
+                            .padding(4)
+                            .background(Color.white.opacity(0.7))
+                            .cornerRadius(4)
+                            .frame(width: min(CGFloat(editingText.count * 12), 280))
+                    }
+                    .position(item.position)
+                } else {
+                    Text(item.text)
+                        .font(.system(size: 16))
+                        .foregroundColor(.black)
+                        .position(item.position)
+                        .onTapGesture {
+                            startEditingText(item)
+                        }
+                        .gesture(textDragGesture(for: item))
+                }
+            }
+        }
+        .frame(width: contentWidth, height: contentHeight)
+    }
+    
+    private func textDragGesture(for item: TextItem) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if let index = textItems.firstIndex(where: { $0.id == item.id }) {
+                    let touchLocation = value.location
+                    
+                    // Constrain within bounds
+                    let constrainedX = min(max(touchLocation.x, 50), contentWidth - 50)
+                    let constrainedY = min(max(touchLocation.y, 50), contentHeight - 50)
+                    
+                    textItems[index].position = CGPoint(x: constrainedX, y: constrainedY)
+                }
+            }
+            .onEnded { _ in
+                onSave()
+            }
+    }
+    
+    private func startEditingText(_ item: TextItem) {
+        editingTextItem = item.id
+        editingText = item.text
+    }
+    
+    private func finishEditingText() {
+        if let id = editingTextItem, let index = textItems.firstIndex(where: { $0.id == id }) {
+            textItems[index].text = editingText
+            onSave()
+        }
+        editingTextItem = nil
+    }
+}
+
+// ImageItemsLayer.swift - Resim düzenleme katmanı
+struct ImageItemsLayer: View {
+    @Binding var images: [ImageItem]
+    let contentWidth: CGFloat
+    let contentHeight: CGFloat
+    let onSave: () -> Void
+    
+    var body: some View {
+        ZStack {
+            ForEach(images.indices, id: \.self) { index in
+                let item = images[index]
+                Image(uiImage: item.image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 100, height: 100)
+                    .position(item.position)
+                    .gesture(imageDragGesture(for: index))
+            }
+        }
+        .frame(width: contentWidth, height: contentHeight)
+    }
+    
+    private func imageDragGesture(for index: Int) -> some Gesture {
+        DragGesture()
+            .onChanged { value in
+                let touchLocation = value.location
+                
+                // Stay within bounds
+                let constrainedX = min(max(touchLocation.x, 60), contentWidth - 60)
+                let constrainedY = min(max(touchLocation.y, 60), contentHeight - 60)
+                
+                images[index].position = CGPoint(x: constrainedX, y: constrainedY)
+            }
+            .onEnded { _ in
+                onSave()
+            }
+    }
+}
+
+
 struct PagePreviewView: View {
     let pageData: PageData
     
     var body: some View {
-        VStack {
-            
+        ZStack {
             if !pageData.textItems.isEmpty || !pageData.images.isEmpty || !pageData.drawing.bounds.isEmpty {
-                
                 ZStack {
                     if !pageData.drawing.bounds.isEmpty {
                         DrawingPreview(drawing: pageData.drawing)
                             .padding(8)
                     }
                     
-                    ForEach(pageData.textItems.prefix(2), id: \.id) { item in
+                    ForEach(pageData.textItems, id: \.id) { item in
                         Text(item.text)
-                            .font(.caption)
+                            .font(.system(size: 16))
                             .foregroundColor(.black)
                             .position(item.position)
                     }
                     
-                    ForEach(pageData.images.prefix(2), id: \.id) { item in
+                    ForEach(pageData.images, id: \.id) { item in
                         Image(uiImage: item.image)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .frame(width: 80, height: 80)
+                            .frame(width: 100, height: 100)
                             .position(item.position)
                     }
                 }
-                .frame(width: 350, height: 600)
-                .clipped()
+                .frame(width: 350, height: 500)
             } else {
                 Text("Empty page")
-                    .font(.caption)
-                    .foregroundColor(.gray)
-                    .frame(height: 200)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(.black)
+                    .kerning(0.5)
             }
         }
-        .padding()
+    }
+}
+
+// MARK: - CanvasView
+struct CanvasView: UIViewRepresentable {
+    @Binding var canvasView: PKCanvasView
+    @Binding var toolPicker: PKToolPicker
+    @Binding var showingToolPicker: Bool
+    @Binding var selectedPenColor: UIColor
+    @Binding var selectedPenType: PKInkingTool.InkType
+    @Binding var isInteractionEnabled: Bool
+    
+    init(canvasView: Binding<PKCanvasView>,
+         toolPicker: Binding<PKToolPicker>,
+         showingToolPicker: Binding<Bool>,
+         selectedPenColor: Binding<UIColor>,
+         selectedPenType: Binding<PKInkingTool.InkType>) {
+        _canvasView = canvasView
+        _toolPicker = toolPicker
+        _showingToolPicker = showingToolPicker
+        _selectedPenColor = selectedPenColor
+        _selectedPenType = selectedPenType
+        _isInteractionEnabled = .constant(true)  // Default value for legacy calls
+    }
+    
+    init(canvasView: Binding<PKCanvasView>,
+         toolPicker: Binding<PKToolPicker>,
+         showingToolPicker: Binding<Bool>,
+         selectedPenColor: Binding<UIColor>,
+         selectedPenType: Binding<PKInkingTool.InkType>,
+         isInteractionEnabled: Binding<Bool>) {
+        _canvasView = canvasView
+        _toolPicker = toolPicker
+        _showingToolPicker = showingToolPicker
+        _selectedPenColor = selectedPenColor
+        _selectedPenType = selectedPenType
+        _isInteractionEnabled = isInteractionEnabled
+    }
+    
+    func makeUIView(context: Context) -> PKCanvasView {
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
+        canvasView.drawingPolicy = .anyInput
+        
+        canvasView.minimumZoomScale = 1.0
+        canvasView.maximumZoomScale = 1.0
+        canvasView.bouncesZoom = false
+        
+        toolPicker = PKToolPicker()
+        toolPicker.addObserver(canvasView)
+        
+        let tool = PKInkingTool(selectedPenType, color: selectedPenColor, width: 5)
+        canvasView.tool = tool
+        
+        return canvasView
+    }
+    
+    func updateUIView(_ uiView: PKCanvasView, context: Context) {
+        uiView.isUserInteractionEnabled = isInteractionEnabled
+        
+        if showingToolPicker {
+            toolPicker.setVisible(true, forFirstResponder: uiView)
+            uiView.becomeFirstResponder()
+        } else {
+            toolPicker.setVisible(false, forFirstResponder: uiView)
+        }
     }
 }
 
@@ -237,6 +966,8 @@ struct DrawingPreview: UIViewRepresentable {
     func makeUIView(context: Context) -> PKCanvasView {
         let canvasView = PKCanvasView()
         canvasView.isUserInteractionEnabled = false
+        canvasView.backgroundColor = .clear
+        canvasView.isOpaque = false
         canvasView.drawing = drawing
         return canvasView
     }
@@ -246,179 +977,115 @@ struct DrawingPreview: UIViewRepresentable {
     }
 }
 
-// Updated FreeformNoteView to work with saved data
-struct FreeformNoteView1: View {
-    let book: MemoryBook
-    let pageContent: String
-    var savedDrawing: PKDrawing
-    var savedTextItems: [TextItem]
-    var savedImages: [ImageItem]
-    var onSave: (PKDrawing, [TextItem], [ImageItem]) -> Void
+struct ImagePicker: UIViewControllerRepresentable {
+    @Binding var selectedImage: UIImage?
+    @Environment(\.presentationMode) var presentationMode
     
-    @State private var textItems: [TextItem] = []
-    @State private var images: [ImageItem] = []
-    @State private var showingImagePicker = false
-    @State private var selectedImage: UIImage?
-    @State private var canvasView = PKCanvasView()
-    @State private var toolPicker = PKToolPicker()
-    @State private var showingToolPicker = false
-    @State private var showingColorPicker = false
-    @State private var selectedPenColor: UIColor = .black
-    @State private var selectedPenType: PKInkingTool.InkType = .pen
-    
-    var body: some View {
-        ZStack {
-            CanvasView(
-                canvasView: $canvasView,
-                toolPicker: $toolPicker,
-                showingToolPicker: $showingToolPicker,
-                selectedPenColor: $selectedPenColor,
-                selectedPenType: $selectedPenType
-            )
-            
-            ForEach(textItems) { item in
-                Text(item.text)
-                    .font(.title)
-                    .position(item.position)
-                    .gesture(DragGesture()
-                        .onChanged { value in
-                            if let index = textItems.firstIndex(where: { $0.id == item.id }) {
-                                textItems[index].position = value.location
-                            }
-                        }
-                    )
-            }
-            
-            ForEach(images) { item in
-                Image(uiImage: item.image)
-                    .resizable()
-                    .frame(width: 100, height: 100)
-                    .position(item.position)
-                    .gesture(DragGesture()
-                        .onChanged { value in
-                            if let index = images.firstIndex(where: { $0.id == item.id }) {
-                                images[index].position = value.location
-                            }
-                        }
-                    )
-            }
-            
-            if showingToolPicker {
-                Button("Done") {
-                    showingToolPicker = false
-                    toolPicker.setVisible(false, forFirstResponder: canvasView)
-                }
-                .padding()
-                .background(Color.white)
-                .cornerRadius(10)
-                .position(x: UIScreen.main.bounds.width - 80, y: 40)
-                .opacity(showingToolPicker ? 1 : 0)
-            }
-            
-            // Color picker overlay
-            if showingColorPicker {
-                ColorPickerView(selectedColor: $selectedPenColor, isShowing: $showingColorPicker)
-                    .zIndex(1)
-            }
-        }
-        .overlay(toolbar, alignment: .bottom)
-        .sheet(isPresented: $showingImagePicker) {
-            CustomImagePicker(image: $selectedImage)
-        }
-        .onChange(of: selectedImage) { newImage in
-            if let newImage = newImage {
-                images.append(ImageItem(image: newImage, position: CGPoint(x: 150, y: 150)))
-                saveChanges()
-            }
-        }
-        .onChange(of: selectedPenColor) { _ in
-            configurePenTool()
-        }
-        .onChange(of: selectedPenType) { _ in
-            configurePenTool()
-        }
-        .onAppear {
-            // Initialize with saved data
-            canvasView.drawing = savedDrawing
-            textItems = savedTextItems
-            images = savedImages
-        }
-        .onDisappear {
-            saveChanges()
-        }
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .photoLibrary
+        return picker
     }
     
-    private var toolbar: some View {
-        HStack(spacing: 20) {
-            Button(action: {
-                textItems.append(TextItem(text: "New Text", position: CGPoint(x: 100, y: 100)))
-                saveChanges()
-            }) {
-                VStack {
-                    Image(systemName: "textbox")
-                    Text("Text")
-                }
-            }
-            
-            Button(action: {
-                showingImagePicker = true
-            }) {
-                VStack {
-                    Image(systemName: "photo")
-                    Text("Image")
-                }
-            }
-            
-            Button(action: {
-                showingToolPicker.toggle()
-            }) {
-                VStack {
-                    Image(systemName: "pencil")
-                    Text("Pen")
-                }
-            }
-            
-            Button(action: {
-                canvasView.drawing = PKDrawing()
-                textItems.removeAll()
-                images.removeAll()
-                saveChanges()
-            }) {
-                VStack {
-                    Image(systemName: "trash")
-                    Text("Clear")
-                }
-            }
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: ImagePicker
+        
+        init(_ parent: ImagePicker) {
+            self.parent = parent
         }
-        .padding()
-        .background(Color.white.opacity(0.8))
-        .cornerRadius(10)
-    }
-    
-    private func configurePenTool() {
-        let tool = PKInkingTool(selectedPenType, color: selectedPenColor, width: 5)
-        canvasView.tool = tool
-        toolPicker.selectedTool = tool
-    }
-    
-    private func saveChanges() {
-        onSave(canvasView.drawing, textItems, images)
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let image = info[.originalImage] as? UIImage {
+                parent.selectedImage = image
+            }
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.presentationMode.wrappedValue.dismiss()
+        }
     }
 }
 
-// Model for storing page data
+struct TextItem: Identifiable, Equatable {
+    var id = UUID()
+    var text: String
+    var position: CGPoint
+    
+    static func == (lhs: TextItem, rhs: TextItem) -> Bool {
+        return lhs.id == rhs.id &&
+        lhs.text == rhs.text &&
+        lhs.position.x == rhs.position.x &&
+        lhs.position.y == rhs.position.y
+    }
+}
+
+// ImageItem modeli
+struct ImageItem: Identifiable, Equatable {
+    var id = UUID()
+    var image: UIImage
+    var position: CGPoint
+    
+    static func == (lhs: ImageItem, rhs: ImageItem) -> Bool {
+        return lhs.id == rhs.id &&
+        lhs.position.x == rhs.position.x &&
+        lhs.position.y == rhs.position.y
+    }
+}
+
+// MARK: - TextItem Extension
+extension TextItem: Codable {
+    enum CodingKeys: String, CodingKey {
+        case id, text, positionX, positionY
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        text = try container.decode(String.self, forKey: .text)
+        let x = try container.decode(CGFloat.self, forKey: .positionX)
+        let y = try container.decode(CGFloat.self, forKey: .positionY)
+        position = CGPoint(x: x, y: y)
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(text, forKey: .text)
+        try container.encode(position.x, forKey: .positionX)
+        try container.encode(position.y, forKey: .positionY)
+    }
+}
+
+// PageData.swift - Sayfa veri modeli
 struct PageData: Codable, Identifiable {
     var id = UUID()
     var title: String
     var drawingData: Data?
     var textItems: [TextItem]
     var imagesData: [ImageData]
+    var showToolPicker: Bool = false
+    var showImagePicker: Bool = false
+    var showTextPlacementMode: Bool = false
     
     struct ImageData: Codable, Identifiable {
         var id = UUID()
         var imageData: Data
         var positionX: CGFloat
         var positionY: CGFloat
+    }
+    
+    // Computed property for text placement mode
+    var enterTextPlacementMode: Bool {
+        get { return showTextPlacementMode }
+        set { showTextPlacementMode = newValue }
     }
     
     var drawing: PKDrawing {
@@ -467,6 +1134,9 @@ struct PageData: Codable, Identifiable {
         self.title = title
         self.drawingData = try? drawing.dataRepresentation()
         self.textItems = textItems
+        self.showToolPicker = false
+        self.showImagePicker = false
+        self.showTextPlacementMode = false
         self.imagesData = images.map { item in
             if let imageData = item.image.jpegData(compressionQuality: 0.7) {
                 return ImageData(
@@ -482,27 +1152,19 @@ struct PageData: Codable, Identifiable {
             )
         }
     }
-}
-
-// Make TextItem Codable
-extension TextItem: Codable {
-    enum CodingKeys: String, CodingKey {
-        case id, text, positionX, positionY
+    
+    // Helper functions for position normalization
+    func normalizePosition(_ position: CGPoint, in size: CGSize) -> CGPoint {
+        return CGPoint(
+            x: position.x / size.width,
+            y: position.y / size.height
+        )
     }
     
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        text = try container.decode(String.self, forKey: .text)
-        let x = try container.decode(CGFloat.self, forKey: .positionX)
-        let y = try container.decode(CGFloat.self, forKey: .positionY)
-        position = CGPoint(x: x, y: y)
-    }
-    
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(text, forKey: .text)
-        try container.encode(position.x, forKey: .positionX)
-        try container.encode(position.y, forKey: .positionY)
+    func denormalizePosition(_ normalizedPosition: CGPoint, to size: CGSize) -> CGPoint {
+        return CGPoint(
+            x: normalizedPosition.x * size.width,
+            y: normalizedPosition.y * size.height
+        )
     }
 }

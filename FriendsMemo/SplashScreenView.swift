@@ -9,120 +9,51 @@ import SwiftUI
 
 struct SplashScreenView: View {
     @Binding var showSplash: Bool
-    @State private var scaleEffect = 1.0
-    @State private var opacity = 1.0
-    @State private var stars = [Star]()
-
+    @State private var opacity = 0.0
+    @State private var scaleEffect = 0.9
+    @State private var rotationDegree = -5.0
+    
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            Color(red: 0.93, green: 0.91, blue: 0.88)
+                .edgesIgnoringSafeArea(.all)
             
-            ForEach(stars) { star in
-                Circle()
-                    .fill(Color.white.opacity(0.8))
-                    .frame(width: star.size, height: star.size)
-                    .position(star.position)
-                    .opacity(star.opacity)
-                    .animation(
-                        Animation.easeInOut(duration: star.duration)
-                            .repeatForever(autoreverses: true)
-                    )
-            }
-            
-            VStack {
-                Image("SplashNeon")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 250, height: 300)
-                    .shadow(color: .pink.opacity(0.7), radius: 20) // 🌟 Ombra luminosa
-                    .scaleEffect(scaleEffect)
-                    .animation(Animation.easeInOut(duration: 1).repeatForever(autoreverses: true))
-                    .onAppear {
-                        scaleEffect = 1.1
-                    }
+            ZStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(Color.white)
+                    .frame(width: 120, height: 180)
+                    .shadow(color: Color.black.opacity(0.12), radius: 8, x: 4, y: 4)
                 
-                Text("Every memory is a page in our story.") // ✨ Frase animata
-                    .font(.title2)
-                    .foregroundColor(.white)
-                    .opacity(opacity)
-                    .animation(Animation.easeInOut(duration: 1.5).repeatForever(autoreverses: true))
-                    .onAppear {
-                        opacity = 0.5
-                    }
+                Rectangle()
+                    .fill(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .frame(width: 10, height: 180)
+                    .offset(x: -55)
+                
+                Text("Memories")
+                    .font(.system(size: 12, weight: .thin))
+                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                    .offset(y: -15)
             }
+            .scaleEffect(scaleEffect)
+            .rotationEffect(.degrees(rotationDegree))
+            .opacity(opacity)
         }
         .onAppear {
-            generateStars()
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-                withAnimation(.easeOut(duration: 1.5)) {
+            withAnimation(Animation.easeOut(duration: 0.8)) {
+                opacity = 1.0
+                scaleEffect = 1.0
+                rotationDegree = 0.0
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                withAnimation(.easeIn(duration: 0.5)) {
+                    opacity = 0.0
+                    scaleEffect = 1.1
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     showSplash = false
                 }
-            }
-        }
-    }
-    
-    func generateStars() {
-        for _ in 0..<30 {
-            let size = CGFloat.random(in: 2...6)
-            let position = CGPoint(
-                x: CGFloat.random(in: 0...UIScreen.main.bounds.width),
-                y: CGFloat.random(in: 0...UIScreen.main.bounds.height)
-            )
-            let duration = Double.random(in: 2...4)
-            let opacity = Double.random(in: 0.2...1)
-
-            stars.append(Star(size: size, position: position, duration: duration, opacity: opacity))
-        }
-    }
-}
-struct Star: Identifiable {
-    let id = UUID()
-    let size: CGFloat
-    let position: CGPoint
-    let duration: Double
-    let opacity: Double
-}
-struct ParticleEffectView: View {
-    @State private var particles = Array(repeating: CGPoint(x: 0, y: 0), count: 20)
-
-    var body: some View {
-        GeometryReader { geo in
-            ForEach(0..<particles.count, id: \.self) { index in
-                Circle()
-                    .fill(Color.blue.opacity(0.5))
-                    .frame(width: 6, height: 6)
-                    .position(particles[index])
-                    .onAppear {
-                        withAnimation(Animation.linear(duration: 3).repeatForever(autoreverses: false)) {
-                            particles[index] = CGPoint(x: CGFloat.random(in: 0...geo.size.width),
-                                                       y: CGFloat.random(in: 0...geo.size.height))
-                        }
-                    }
-            }
-        }
-    }
-}
-
-struct PageTurnEffect: View {
-    @State private var angle: Double = 0
-
-    var body: some View {
-        GeometryReader { geometry in
-            ZStack {
-                Color.white
-                    .edgesIgnoringSafeArea(.all)
-
-                Rectangle()
-                    .fill(Color.white)
-                    .shadow(radius: 10)
-                    .rotation3DEffect(.degrees(angle), axis: (x: 0, y: 1, z: 0), anchor: .trailing)
-                    .frame(width: geometry.size.width)
-                    .onAppear {
-                        withAnimation(Animation.easeInOut(duration: 1.5)) {
-                            angle = -180
-                        }
-                    }
             }
         }
     }
