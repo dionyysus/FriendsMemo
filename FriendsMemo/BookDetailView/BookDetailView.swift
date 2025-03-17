@@ -20,6 +20,7 @@ struct BookDetailView: View {
     @State private var isDeleting = false
     @State private var showClearAlert = false
     @State private var showToolPicker = false
+    @State private var showMoreOptions = false
     
     private var pagesKey: String {
         return "bookPages_\(book.id.uuidString)"
@@ -31,24 +32,20 @@ struct BookDetailView: View {
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 20) {
-                if !isEditing {
-                    Text(book.name)
-                        .font(.system(size: 20, weight: .medium))
-                        .kerning(1)
-                        .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.25))
-                        .padding(.top, 15)
-                }
+                Text(book.name)
+                    .font(.system(size: 20, weight: .medium))
+                    .kerning(1)
+                    .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.25))
+                    .padding(.top, 15)
                 
                 pagesTabView
-                    .padding(.bottom, isEditing ? 20 : 80)
+                    .padding(.bottom, 80)
                 
                 Spacer()
             }
             
-            
-            
             if !showToolPicker {
-                toolbarView
+                unifiedToolbarView
                     .zIndex(100)
             }
         }
@@ -56,10 +53,7 @@ struct BookDetailView: View {
         .onAppear {
             loadPagesFromUserDefaults()
         }
-        
-        
     }
-    
     
     // MARK: Views
     private var pagesTabView: some View {
@@ -67,11 +61,7 @@ struct BookDetailView: View {
             TabView(selection: $currentPage) {
                 ForEach(0..<pages.count, id: \.self) { index in
                     VStack {
-                        if isEditing && editingPageIndex == index {
-                            editingPageView(for: index)
-                        } else {
-                            pagePreviewView(for: index)
-                        }
+                        pageContentView(for: index)
                     }
                     .tag(index)
                     .transition(.opacity)
@@ -89,81 +79,7 @@ struct BookDetailView: View {
         }
     }
     
-    private func editingPageView(for index: Int) -> some View {
-        FreeformNoteView1(
-            book: book,
-            pageContent: pages[index].title,
-            savedDrawing: pages[index].drawing,
-            savedTextItems: pages[index].textItems,
-            savedImages: pages[index].images,
-            isEditMode: $isEditing,
-            showToolPicker: Binding(
-                get: { pages[index].showToolPicker },
-                set: { newValue in
-                    pages[index].showToolPicker = newValue
-                    showToolPicker = newValue
-                    savePagesToUserDefaults()
-                }
-            ),
-            showImagePicker: Binding(
-                get: { pages[index].showImagePicker },
-                set: { pages[index].showImagePicker = $0 }
-            ),
-            enterTextPlacement: Binding(
-                get: { pages[index].enterTextPlacementMode },
-                set: { pages[index].enterTextPlacementMode = $0 }
-            ),
-            onSave: { drawing, textItems, images in
-                pages[index].drawing = drawing
-                pages[index].textItems = textItems
-                pages[index].images = images
-                pages[index].showToolPicker = showToolPicker  // Eşitleme
-                savePagesToUserDefaults()
-            },
-            onDone: {
-                savePage(at: currentPage)
-                isEditing = false
-                editingPageIndex = nil
-            },
-            onDelete: deleteCurrentPage,
-            onAddPage: addNewPage
-        )
-        .frame(width: 350, height: 500)
-        .background(Color.white)
-        .cornerRadius(4)
-        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
-        .overlay(
-            VStack {
-                Spacer()
-                Rectangle()
-                    .fill(book.color.toSwiftUIColor())
-                    .frame(height: 20)
-            }
-                .frame(width: 350, height: 500)
-                .clipShape(RoundedRectangle(cornerRadius: 4))
-                .allowsHitTesting(false)
-        )
-    }
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                .frame(width: 240, height: 280)
-            
-            Text("No memories yet")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(Color.gray.opacity(0.7))
-                .kerning(0.5)
-            
-            Text("Tap + to add your first page")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(Color.gray.opacity(0.5))
-                .kerning(0.5)
-        }
-    }
-    
-    
-    private func pagePreviewView(for index: Int) -> some View {
+    private func pageContentView(for index: Int) -> some View {
         ZStack {
             VStack {
                 Rectangle()
@@ -184,9 +100,62 @@ struct BookDetailView: View {
             .frame(width: 350, height: 500)
             .clipShape(RoundedRectangle(cornerRadius: 4))
             
-            VStack {
-                PagePreviewView(pageData: pages[index])
-                    .frame(width: 350, height: 500)
+            // Direct editing view with safe index checking
+            if pages.indices.contains(index) {
+                FreeformNoteView1(
+                    book: book,
+                    pageContent: pages[index].title,
+                    savedDrawing: pages[index].drawing,
+                    savedTextItems: pages[index].textItems,
+                    savedImages: pages[index].images,
+                    isEditMode: .constant(true),  // Always in edit mode
+                    showToolPicker: Binding(
+                        get: { pages[index].showToolPicker },
+                        set: { newValue in
+                            // Add safe index check
+                            if pages.indices.contains(index) {
+                                pages[index].showToolPicker = newValue
+                                showToolPicker = newValue
+                                savePagesToUserDefaults()
+                            }
+                        }
+                    ),
+                    showImagePicker: Binding(
+                        get: { pages.indices.contains(index) ? pages[index].showImagePicker : false },
+                        set: { newValue in
+                            if pages.indices.contains(index) {
+                                pages[index].showImagePicker = newValue
+                            }
+                        }
+                    ),
+                    enterTextPlacement: Binding(
+                        get: { pages.indices.contains(index) ? pages[index].enterTextPlacementMode : false },
+                        set: { newValue in
+                            if pages.indices.contains(index) {
+                                pages[index].enterTextPlacementMode = newValue
+                            }
+                        }
+                    ),
+                    onSave: { drawing, textItems, images in
+                        // Add safe index check before trying to save
+                        if pages.indices.contains(index) {
+                            pages[index].drawing = drawing
+                            pages[index].textItems = textItems
+                            pages[index].images = images
+                            pages[index].showToolPicker = showToolPicker
+                            savePagesToUserDefaults()
+                        }
+                    },
+                    onDone: {
+                        // Add safe index check
+                        if pages.indices.contains(index) {
+                            savePage(at: index)
+                        }
+                    },
+                    onDelete: deleteCurrentPage,
+                    onAddPage: addNewPage
+                )
+                .frame(width: 350, height: 500)
             }
             
             VStack {
@@ -204,127 +173,212 @@ struct BookDetailView: View {
             }
             .frame(width: 350, height: 500)
         }
-        .onTapGesture {
-            editingPageIndex = index
-            isEditing = true
-        }
     }
-    
-    private var toolbarView: some View {
+    // MARK: - Improved Toolbar Design
+    private var unifiedToolbarView: some View {
         VStack {
             Spacer()
             
             if !showToolPicker {
-                HStack(spacing: 30) {
-                    Button(action: {
-                        if isEditing {
-                            savePage(at: currentPage)
-                            isEditing = false
-                            editingPageIndex = nil
-                        } else {
-                            editingPageIndex = currentPage
-                            isEditing = true
+                VStack(spacing: 0) {
+                    // Main toolbar with frequently used actions
+                    HStack(spacing: 20) {
+                        
+                        // Add button
+                        Button(action: addNewPage) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .frame(width: 40, height: 40)
                         }
-                    }) {
-                        Image(systemName: isEditing ? "checkmark" : "pencil")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                            .frame(width: 40, height: 40)
+                        
+                        // Drawing tools button
+                        Button(action: toggleDrawingMode) {
+                            Image(systemName: "pencil.tip")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .frame(width: 40, height: 40)
+                        }
+                        .disabled(pages.isEmpty)
+                        .opacity(pages.isEmpty ? 0.3 : 1.0)
+                        
+                        // Text button
+                        Button(action: addTextToPage) {
+                            Image(systemName: "text.alignleft")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .frame(width: 40, height: 40)
+                        }
+                        .disabled(pages.isEmpty)
+                        .opacity(pages.isEmpty ? 0.3 : 1.0)
+                        
+                        // Photo button
+                        Button(action: showImagePickerForPage) {
+                            Image(systemName: "photo")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .frame(width: 40, height: 40)
+                        }
+                        .disabled(pages.isEmpty)
+                        .opacity(pages.isEmpty ? 0.3 : 1.0)
+                        
+                       
+//                        // Show more button
+//                        Button(action: {
+//                            withAnimation {
+//                                showMoreOptions.toggle()
+//                            }
+//                        }) {
+//                            Image(systemName: showMoreOptions ? "chevron.down" : "ellipsis")
+//                                .font(.system(size: 16))
+//                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+//                                .frame(width: 40, height: 40)
+//                        }
+                        
+                        // Delete page button
+                        Button(action: deleteCurrentPage) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .frame(width: 40, height: 40)
+                        }
+                        .disabled(pages.isEmpty)
+                        .opacity(pages.isEmpty ? 0.3 : 1.0)
+                        
                     }
+                    .padding(.horizontal, 30)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color.white)
+                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                    )
                     
-                    if isEditing {
-                        editingToolbarButtons
-                    } else {
-                        viewingToolbarButtons
+                    // Extended options when "Show more" is clicked
+                    if showMoreOptions {
+                        HStack(spacing: 20) {
+                            // Save button
+                            Button(action: {
+                                savePage(at: currentPage)
+                            }) {
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                    .frame(width: 40, height: 40)
+                            }
+                            .disabled(pages.isEmpty)
+                            .opacity(pages.isEmpty ? 0.3 : 1.0)
+                            
+                            // Clear page button
+                            Button(action: {
+                                showClearAlert = true
+                            }) {
+                                Image(systemName: "trash.slash")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                    .frame(width: 40, height: 40)
+                            }
+                            .disabled(pages.isEmpty)
+                            .opacity(pages.isEmpty ? 0.3 : 1.0)
+                            
+//                            // Delete page button
+//                            Button(action: deleteCurrentPage) {
+//                                Image(systemName: "trash")
+//                                    .font(.system(size: 16))
+//                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+//                                    .frame(width: 40, height: 40)
+//                            }
+//                            .disabled(pages.isEmpty)
+//                            .opacity(pages.isEmpty ? 0.3 : 1.0)
+                        }
+                        .padding(.horizontal, 30)
+                        .padding(.vertical, 12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 4)
+                                .fill(Color.white)
+                                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                        )
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.top, 8)
                     }
                 }
-                .padding(.horizontal, 30)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                )
                 .padding(.bottom, 30)
-                .padding(.top, 30)
+                .alert(isPresented: $showClearAlert) {
+                    Alert(
+                        title: Text("Clear Page Content"),
+                        message: Text("Are you sure you want to clear all content from this page?"),
+                        primaryButton: .destructive(Text("Clear")) {
+                            clearPageContent()
+                        },
+                        secondaryButton: .cancel()
+                    )
+                }
             }
         }
     }
-    private var editingToolbarButtons: some View {
-        Group {
-            Button(action: addTextToPage) {
-                Image(systemName: "text.alignleft")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 25)
-            }
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            RoundedRectangle(cornerRadius: 4)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                .frame(width: 240, height: 280)
             
-            Button(action: showImagePickerForPage) {
-                Image(systemName: "photo")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 40)
-            }
+            Text("No memories yet")
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(Color.gray.opacity(0.7))
+                .kerning(0.5)
             
-            Button(action: toggleDrawingMode) {
-                Image(systemName: "pencil.tip")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 25)
-            }
-        }
-    }
-    
-    private func toggleDrawingMode() {
-        if let index = editingPageIndex {
-            pages[index].showToolPicker = true
-            showToolPicker = true
-            savePagesToUserDefaults()
-        }
-    }
-    
-    private func toggleToolPicker() {
-        if let index = editingPageIndex {
-            pages[index].showToolPicker.toggle()
-            showToolPicker = pages[index].showToolPicker
-            savePagesToUserDefaults()
-        }
-    }
-    
-    private var viewingToolbarButtons: some View {
-        Group {
-            Button(action: deleteCurrentPage) {
-                Image(systemName: "trash")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 40)
-            }
-            .disabled(pages.isEmpty)
-            .opacity(pages.isEmpty ? 0.3 : 1.0)
-            
-            Button(action: addNewPage) {
-                Image(systemName: "plus")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 40)
-            }
+            Text("Tap + to add your first page")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(Color.gray.opacity(0.5))
+                .kerning(0.5)
         }
     }
     
     // MARK: Actions
+    // Also update the functions that modify pages to include bounds checking
     private func addTextToPage() {
-        if let index = editingPageIndex {
-            pages[index].enterTextPlacementMode = true
-            savePagesToUserDefaults()
+        guard !pages.isEmpty else { return }
+        
+        // Only proceed if current page index is valid
+        guard pages.indices.contains(currentPage) else {
+            // Handle invalid index - adjust currentPage if needed
+            currentPage = min(currentPage, pages.count - 1)
+            return
         }
+        
+        pages[currentPage].enterTextPlacementMode = true
+        savePagesToUserDefaults()
     }
     
     private func showImagePickerForPage() {
-        if let index = editingPageIndex {
-            pages[index].showImagePicker = true
-            savePagesToUserDefaults()
+        guard !pages.isEmpty else { return }
+        
+        // Only proceed if current page index is valid
+        guard pages.indices.contains(currentPage) else {
+            // Handle invalid index - adjust currentPage if needed
+            currentPage = min(currentPage, pages.count - 1)
+            return
         }
+        
+        pages[currentPage].showImagePicker = true
+        savePagesToUserDefaults()
     }
+    
+    private func toggleDrawingMode() {
+        guard !pages.isEmpty else { return }
+        
+        // Only proceed if current page index is valid
+        guard pages.indices.contains(currentPage) else {
+            // Handle invalid index - adjust currentPage if needed
+            currentPage = min(currentPage, pages.count - 1)
+            return
+        }
+        
+        pages[currentPage].showToolPicker = true
+        showToolPicker = true
+        savePagesToUserDefaults()
+    }
+
     
     private func addNewPage() {
         withAnimation {
@@ -344,23 +398,53 @@ struct BookDetailView: View {
     private func deleteCurrentPage() {
         guard !pages.isEmpty else { return }
         
+        // Check if we need to adjust the page index before deletion
+        let pageToDelete = currentPage
+        let newPageIndex = currentPage >= pages.count - 1 ? max(0, pages.count - 2) : currentPage
+        
+        // Show deletion animation
         withAnimation(.easeInOut(duration: 0.3)) {
             isDeleting = true
         }
         
+        // Perform deletion with a short delay to allow animation
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             withAnimation {
-                pages.remove(at: currentPage)
-                currentPage = max(0, currentPage - 1)
+                // Remove the page
+                pages.remove(at: pageToDelete)
+                
+                // Update page index based on deletion conditions
+                if pages.isEmpty {
+                    // If we deleted the last page, there's no current page
+                    currentPage = 0
+                } else {
+                    // Otherwise, set to the calculated new index
+                    currentPage = newPageIndex
+                }
+                
                 isDeleting = false
                 savePagesToUserDefaults()
+                
+                // Add empty state check
+                if pages.isEmpty {
+                    // If all pages were deleted, we might want to add a new empty page
+                    // or simply leave it empty for the user to add a new one
+                    print("All pages deleted")
+                }
             }
         }
     }
     
     private func savePage(at index: Int) {
-        savePagesToUserDefaults()
+        // Check if the index is valid before saving
+        if pages.indices.contains(index) {
+            savePagesToUserDefaults()
+        } else {
+            print("Attempted to save a page at invalid index: \(index)")
+        }
     }
+
+    
     
     // MARK: Data Management
     private func loadPagesFromUserDefaults() {
@@ -382,25 +466,24 @@ struct BookDetailView: View {
     }
     
     private func clearPageContent() {
-        guard !pages.isEmpty, let index = editingPageIndex else { return }
+        guard !pages.isEmpty else { return }
         
-        pages[index].drawing = PKDrawing()
-        pages[index].textItems = []
-        pages[index].images = []
-        pages[index].showToolPicker = false
+        // Only proceed if current page index is valid
+        guard pages.indices.contains(currentPage) else {
+            // Handle invalid index - adjust currentPage if needed
+            currentPage = min(currentPage, pages.count - 1)
+            return
+        }
+        
+        pages[currentPage].drawing = PKDrawing()
+        pages[currentPage].textItems = []
+        pages[currentPage].images = []
+        pages[currentPage].showToolPicker = false
+        showToolPicker = false
         
         savePagesToUserDefaults()
-        
-        let currentIndex = index
-        isEditing = false
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-            editingPageIndex = currentIndex
-            isEditing = true
-        }
     }
 }
-
 
 // MARK: - FreeformNoteView1
 struct FreeformNoteView1: View {
@@ -501,10 +584,10 @@ struct FreeformNoteView1: View {
                             .frame(height: 20)
                         
                         HStack {
-                            Text("Editing")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.white)
-                            
+//                            Text(isEditMode ? "Editing" : "Viewing")
+//                                .font(.system(size: 12, weight: .regular))
+//                                .foregroundColor(.white)
+//                            
                             Spacer()
                             
                             Text(formattedDate())
@@ -596,7 +679,6 @@ struct FreeformNoteView1: View {
         }
     }
     
-    
     // MARK: Views
     private var textPlacementOverlay: some View {
         ZStack {
@@ -617,24 +699,6 @@ struct FreeformNoteView1: View {
                     .position(item.position)
                     .allowsHitTesting(false)
             }
-        }
-    }
-    
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                .frame(width: 240, height: 280)
-            
-            Text("No memories yet")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(.black)
-                .kerning(0.5)
-            
-            Text("Tap + to add your first page")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(.black)
-                .kerning(0.5)
         }
     }
     
@@ -743,7 +807,6 @@ struct FreeformNoteView1: View {
         }
     }
 }
-
 
 struct TextItemsLayer: View {
     @Binding var textItems: [TextItem]
