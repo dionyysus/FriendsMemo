@@ -45,14 +45,21 @@ struct BookDetailView: View {
                 Spacer()
             }
             
-            
-            
             if !showToolPicker {
                 toolbarView
                     .zIndex(100)
             }
         }
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: addNewPage) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 16))
+                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                }
+            }
+        }
         .onAppear {
             loadPagesFromUserDefaults()
         }
@@ -235,7 +242,15 @@ struct BookDetailView: View {
                     if isEditing {
                         editingToolbarButtons
                     } else {
-                        viewingToolbarButtons
+                        // Remove the add button and keep only trash in viewing mode
+                        Button(action: deleteCurrentPage) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 16))
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .frame(width: 40, height: 40)
+                        }
+                        .disabled(pages.isEmpty)
+                        .opacity(pages.isEmpty ? 0.3 : 1.0)
                     }
                 }
                 .padding(.horizontal, 30)
@@ -275,41 +290,8 @@ struct BookDetailView: View {
         }
     }
     
-    private func toggleDrawingMode() {
-        if let index = editingPageIndex {
-            pages[index].showToolPicker = true
-            showToolPicker = true
-            savePagesToUserDefaults()
-        }
-    }
-    
-    private func toggleToolPicker() {
-        if let index = editingPageIndex {
-            pages[index].showToolPicker.toggle()
-            showToolPicker = pages[index].showToolPicker
-            savePagesToUserDefaults()
-        }
-    }
-    
-    private var viewingToolbarButtons: some View {
-        Group {
-            Button(action: deleteCurrentPage) {
-                Image(systemName: "trash")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 40)
-            }
-            .disabled(pages.isEmpty)
-            .opacity(pages.isEmpty ? 0.3 : 1.0)
-            
-            Button(action: addNewPage) {
-                Image(systemName: "plus")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 40)
-            }
-        }
-    }
+    // Remove the viewingToolbarButtons as we're moving the add button to the navigation bar
+    // and keeping only the trash button directly in the toolbarView
     
     // MARK: Actions
     private func addTextToPage() {
@@ -322,6 +304,22 @@ struct BookDetailView: View {
     private func showImagePickerForPage() {
         if let index = editingPageIndex {
             pages[index].showImagePicker = true
+            savePagesToUserDefaults()
+        }
+    }
+    
+    private func toggleDrawingMode() {
+        if let index = editingPageIndex {
+            pages[index].showToolPicker = true
+            showToolPicker = true
+            savePagesToUserDefaults()
+        }
+    }
+    
+    private func toggleToolPicker() {
+        if let index = editingPageIndex {
+            pages[index].showToolPicker.toggle()
+            showToolPicker = pages[index].showToolPicker
             savePagesToUserDefaults()
         }
     }
@@ -400,7 +398,6 @@ struct BookDetailView: View {
         }
     }
 }
-
 
 // MARK: - FreeformNoteView1
 struct FreeformNoteView1: View {
