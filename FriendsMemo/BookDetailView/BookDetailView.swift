@@ -46,7 +46,7 @@ struct BookDetailView: View {
             }
             
             if !showToolPicker {
-                toolbarView
+                unifiedToolbarView
                     .zIndex(100)
             }
         }
@@ -63,10 +63,7 @@ struct BookDetailView: View {
         .onAppear {
             loadPagesFromUserDefaults()
         }
-        
-        
     }
-    
     
     // MARK: Views
     private var pagesTabView: some View {
@@ -93,6 +90,85 @@ struct BookDetailView: View {
                     }
                 }
             )
+        }
+    }
+    
+    // Unified toolbar view that's always the same
+    private var unifiedToolbarView: some View {
+        VStack {
+            Spacer()
+            
+            if !showToolPicker {
+                HStack(spacing: 25) {
+                    // Edit/Save button
+                    Button(action: {
+                        if isEditing {
+                            savePage(at: currentPage)
+                            isEditing = false
+                            editingPageIndex = nil
+                        } else {
+                            editingPageIndex = currentPage
+                            isEditing = true
+                        }
+                    }) {
+                        Image(systemName: isEditing ? "checkmark" : "pencil")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            .frame(width: 40, height: 40)
+                    }
+                    .disabled(pages.isEmpty)
+                    .opacity(pages.isEmpty ? 0.3 : 1.0)
+                    
+                    // Text button
+                    Button(action: addTextToPage) {
+                        Image(systemName: "text.alignleft")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            .frame(width: 40, height: 40)
+                    }
+                    .disabled(!isEditing)
+                    .opacity(!isEditing ? 0.3 : 1.0)
+                    
+                    // Photo button
+                    Button(action: showImagePickerForPage) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            .frame(width: 40, height: 40)
+                    }
+                    .disabled(!isEditing)
+                    .opacity(!isEditing ? 0.3 : 1.0)
+                    
+                    // Drawing tools button
+                    Button(action: toggleDrawingMode) {
+                        Image(systemName: "pencil.tip")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            .frame(width: 40, height: 40)
+                    }
+                    .disabled(!isEditing)
+                    .opacity(!isEditing ? 0.3 : 1.0)
+                    
+                    // Delete button
+                    Button(action: deleteCurrentPage) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            .frame(width: 40, height: 40)
+                    }
+                    .disabled(pages.isEmpty)
+                    .opacity(pages.isEmpty ? 0.3 : 1.0)
+                }
+                .padding(.horizontal, 30)
+                .padding(.vertical, 12)
+                .background(
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white)
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                )
+                .padding(.bottom, 30)
+                .padding(.top, 30)
+            }
         }
     }
     
@@ -124,7 +200,7 @@ struct BookDetailView: View {
                 pages[index].drawing = drawing
                 pages[index].textItems = textItems
                 pages[index].images = images
-                pages[index].showToolPicker = showToolPicker  // Eşitleme
+                pages[index].showToolPicker = showToolPicker
                 savePagesToUserDefaults()
             },
             onDone: {
@@ -151,6 +227,7 @@ struct BookDetailView: View {
                 .allowsHitTesting(false)
         )
     }
+    
     private var emptyStateView: some View {
         VStack(spacing: 16) {
             RoundedRectangle(cornerRadius: 4)
@@ -168,7 +245,6 @@ struct BookDetailView: View {
                 .kerning(0.5)
         }
     }
-    
     
     private func pagePreviewView(for index: Int) -> some View {
         ZStack {
@@ -217,103 +293,27 @@ struct BookDetailView: View {
         }
     }
     
-    private var toolbarView: some View {
-        VStack {
-            Spacer()
-            
-            if !showToolPicker {
-                HStack(spacing: 30) {
-                    Button(action: {
-                        if isEditing {
-                            savePage(at: currentPage)
-                            isEditing = false
-                            editingPageIndex = nil
-                        } else {
-                            editingPageIndex = currentPage
-                            isEditing = true
-                        }
-                    }) {
-                        Image(systemName: isEditing ? "checkmark" : "pencil")
-                            .font(.system(size: 16))
-                            .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                            .frame(width: 40, height: 40)
-                    }
-                    
-                    if isEditing {
-                        editingToolbarButtons
-                    } else {
-                        // Remove the add button and keep only trash in viewing mode
-                        Button(action: deleteCurrentPage) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 16))
-                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                                .frame(width: 40, height: 40)
-                        }
-                        .disabled(pages.isEmpty)
-                        .opacity(pages.isEmpty ? 0.3 : 1.0)
-                    }
-                }
-                .padding(.horizontal, 30)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white)
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                )
-                .padding(.bottom, 30)
-                .padding(.top, 30)
-            }
-        }
-    }
-    private var editingToolbarButtons: some View {
-        Group {
-            Button(action: addTextToPage) {
-                Image(systemName: "text.alignleft")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 25)
-            }
-            
-            Button(action: showImagePickerForPage) {
-                Image(systemName: "photo")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 40)
-            }
-            
-            Button(action: toggleDrawingMode) {
-                Image(systemName: "pencil.tip")
-                    .font(.system(size: 16))
-                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                    .frame(width: 40, height: 25)
-            }
-        }
-    }
-    
-    // Remove the viewingToolbarButtons as we're moving the add button to the navigation bar
-    // and keeping only the trash button directly in the toolbarView
-    
     // MARK: Actions
     private func addTextToPage() {
-        if let index = editingPageIndex {
-            pages[index].enterTextPlacementMode = true
-            savePagesToUserDefaults()
-        }
+        guard isEditing, let index = editingPageIndex else { return }
+        
+        pages[index].enterTextPlacementMode = true
+        savePagesToUserDefaults()
     }
     
     private func showImagePickerForPage() {
-        if let index = editingPageIndex {
-            pages[index].showImagePicker = true
-            savePagesToUserDefaults()
-        }
+        guard isEditing, let index = editingPageIndex else { return }
+        
+        pages[index].showImagePicker = true
+        savePagesToUserDefaults()
     }
     
     private func toggleDrawingMode() {
-        if let index = editingPageIndex {
-            pages[index].showToolPicker = true
-            showToolPicker = true
-            savePagesToUserDefaults()
-        }
+        guard isEditing, let index = editingPageIndex else { return }
+        
+        pages[index].showToolPicker = true
+        showToolPicker = true
+        savePagesToUserDefaults()
     }
     
     private func toggleToolPicker() {
@@ -593,7 +593,6 @@ struct FreeformNoteView1: View {
         }
     }
     
-    
     // MARK: Views
     private var textPlacementOverlay: some View {
         ZStack {
@@ -614,24 +613,6 @@ struct FreeformNoteView1: View {
                     .position(item.position)
                     .allowsHitTesting(false)
             }
-        }
-    }
-    
-    private var emptyStateView: some View {
-        VStack(spacing: 16) {
-            RoundedRectangle(cornerRadius: 4)
-                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                .frame(width: 240, height: 280)
-            
-            Text("No memories yet")
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(.black)
-                .kerning(0.5)
-            
-            Text("Tap + to add your first page")
-                .font(.system(size: 14, weight: .regular))
-                .foregroundColor(.black)
-                .kerning(0.5)
         }
     }
     
@@ -740,7 +721,6 @@ struct FreeformNoteView1: View {
         }
     }
 }
-
 
 struct TextItemsLayer: View {
     @Binding var textItems: [TextItem]
