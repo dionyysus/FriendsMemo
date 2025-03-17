@@ -9,14 +9,14 @@ import SwiftUI
 
 @main
 struct FriendsMemoApp: App {
-    @State private var showSplash = true
+    @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
 
     var body: some Scene {
         WindowGroup {
-            if showSplash {
-                SplashScreenView(showSplash: $showSplash)
-            } else {
+            if hasSeenOnboarding {
                 FriendsView()
+            } else {
+                OnboardingView()
             }
         }
     }
