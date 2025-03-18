@@ -9,9 +9,10 @@ import SwiftUI
 
 struct OnboardingView: View {
     @AppStorage("hasSeenOnboarding") private var hasSeenOnboarding: Bool = false
-    @State private var currentPage = 0
+    @State private var currentPage =
+    0
     
-    // Define our 4 onboarding pages with content specific to memory book features
+    // Onboarding sayfalarını lokalize edilmiş içerikle tanımlayın
     let onboardingPages: [OnboardingPage] = [
         OnboardingPage(
             image: "create_book",
@@ -61,7 +62,7 @@ struct OnboardingView: View {
                     Button(action: {
                         hasSeenOnboarding = true
                     }) {
-                        Text("Skip")
+                        Text(LocalizedStringKey("Skip"))
                             .font(.system(size: 16, weight: .medium))
                             .foregroundColor(textColor)
                             .padding()
@@ -95,7 +96,7 @@ struct OnboardingView: View {
                                 VStack {
                                     Spacer()
                                     HStack {
-                                        Text("Page \(index + 1)")
+                                        Text(String(format: NSLocalizedString("Page %@", comment: "Page number"), "\(index + 1)"))
                                             .font(.system(size: 12, weight: .regular))
                                             .foregroundColor(.white)
                                         
@@ -109,13 +110,13 @@ struct OnboardingView: View {
                             
                             // Title and description (matching your app's typography)
                             VStack(spacing: 16) {
-                                Text(onboardingPages[index].title)
+                                Text(LocalizedStringKey(onboardingPages[index].title))
                                     .font(.system(size: 20, weight: .medium))
                                     .kerning(1)
                                     .foregroundColor(textColor)
                                     .multilineTextAlignment(.center)
                                 
-                                Text(onboardingPages[index].description)
+                                Text(LocalizedStringKey(onboardingPages[index].description))
                                     .font(.system(size: 16, weight: .regular))
                                     .foregroundColor(secondaryTextColor)
                                     .multilineTextAlignment(.center)
@@ -152,7 +153,7 @@ struct OnboardingView: View {
                         }
                     }
                 }) {
-                    Text(currentPage == onboardingPages.count - 1 ? "Get Started" : "Continue")
+                    Text(LocalizedStringKey(currentPage == onboardingPages.count - 1 ? "Get Started" : "Continue"))
                         .font(.system(size: 14, weight: .medium))
                         .kerning(1)
                         .foregroundColor(.white)

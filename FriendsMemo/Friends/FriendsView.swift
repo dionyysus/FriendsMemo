@@ -403,6 +403,7 @@ struct FriendsView: View {
     @State private var books: [MemoryBook] = []
     @State private var bookToDelete: MemoryBook?
     @State private var isEditMode = false
+    @State private var showLanguageSettings = false  // Dil ayarları için durum değişkeni
     
     var body: some View {
         NavigationView {
@@ -413,12 +414,22 @@ struct FriendsView: View {
                 VStack(spacing: 0) {
                     VStack(spacing: 0) {
                         HStack {
-                            Text("Memory Library")
+                            Text(LocalizedStringKey("Memory Library"))
                                 .font(.system(size: 20, weight: .light))
                                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
                                 .tracking(2)
                             
                             Spacer()
+                            
+                            // Dil değiştirme düğmesi
+                            Button(action: {
+                                showLanguageSettings = true
+                            }) {
+                                Image(systemName: "globe")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                            }
+                            .padding(.trailing, 10)
                             
                             if !books.isEmpty {
                                 Button(action: {
@@ -427,7 +438,7 @@ struct FriendsView: View {
                                         hapticFeedback(style: .light)
                                     }
                                 }) {
-                                    Text(isEditMode ? "Done" : "Edit")
+                                    Text(LocalizedStringKey(isEditMode ? "Done" : "Edit"))
                                         .font(.system(size: 14, weight: .light))
                                         .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
                                         .tracking(1)
@@ -514,6 +525,8 @@ struct FriendsView: View {
                         HStack {
                             Spacer()
                             
+                            
+                            
                             Button(action: {
                                 if !isEditMode {
                                     isAddFriendModalPresented = true
@@ -544,6 +557,9 @@ struct FriendsView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showLanguageSettings) { 
+                          LanguageSettingsView()
+                      }
             .alert(isPresented: $isShowingDeleteAlert) {
                 Alert(
                     title: Text("Delete"),
