@@ -4,7 +4,7 @@ struct AddNewMemoryBookView: View {
     var onSave: (MemoryBook) -> Void
     @Environment(\.presentationMode) var presentationMode
     @State private var bookName = ""
-    @State private var selectedColor = Color(red: 0.2, green: 0.4, blue: 0.3) 
+    @State private var selectedColor = Color(red: 0.2, green: 0.4, blue: 0.3)
     
     func formattedDate() -> String {
         let dateFormatter = DateFormatter()
@@ -151,7 +151,7 @@ struct AddNewMemoryBookView: View {
                 Spacer()
                 
                 Button(action: saveBook) {
-                    Text("KAYDET")
+                    Text("Done")
                         .font(.system(size: 14, weight: .medium))
                         .kerning(1)
                         .padding()
@@ -187,9 +187,6 @@ struct AddNewMemoryBookView: View {
         presentationMode.wrappedValue.dismiss()
     }
 }
-import SwiftUI
-
-import SwiftUI
 
 struct CodableColor: Codable {
     var red: Double
@@ -208,11 +205,8 @@ struct CodableColor: Codable {
         }
     }
     
-    // Gerçekçi kitap renkleri oluşturmak için güncellenmiş fonksiyon
     func toSwiftUIColor() -> Color {
-        // Kitap benzeri renkler oluşturan yardımcı fonksiyon
         func createBookColor(r: Double, g: Double, b: Double) -> (Double, Double, Double) {
-            // HSV dönüşümü
             let cmax = max(r, max(g, b))
             let cmin = min(r, min(g, b))
             let delta = cmax - cmin
@@ -451,7 +445,7 @@ struct FriendsView: View {
                                 Spacer(minLength: 100)
                                 
                                 VStack(spacing: 20) {
-                                    Text("Kütüphaneniz boş")
+                                    Text("No memories yet")
                                         .font(.system(size: 16, weight: .light))
                                         .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))
                                         .tracking(1)
