@@ -4,7 +4,7 @@ struct AddNewMemoryBookView: View {
     var onSave: (MemoryBook) -> Void
     @Environment(\.presentationMode) var presentationMode
     @State private var bookName = ""
-    @State private var selectedColor = Color.blue
+    @State private var selectedColor = Color(red: 0.2, green: 0.4, blue: 0.3) 
     
     func formattedDate() -> String {
         let dateFormatter = DateFormatter()
@@ -14,57 +14,69 @@ struct AddNewMemoryBookView: View {
     
     var body: some View {
         ZStack {
-            Color(red: 0.93, green: 0.91, blue: 0.88)
+            Color(red: 0.96, green: 0.95, blue: 0.93)
                 .edgesIgnoringSafeArea(.all)
             
             VStack(spacing: 30) {
                 Text("New Memory")
-                    .font(.system(size: 22, weight: .medium))
-                    .kerning(1.5)
+                    .font(.system(size: 20, weight: .light))
+                    .kerning(2)
                     .foregroundColor(Color(red: 0.25, green: 0.25, blue: 0.25))
                     .padding(.top, 20)
                 
                 ZStack {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white)
-                        .frame(width: 240, height: 280)
-                        .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Color(red: 0.98, green: 0.96, blue: 0.94))
+                        .frame(width: 160, height: 220)
+                        .offset(x: -1.5, y: -1.5)
                     
-                    VStack {
-                        Spacer()
-                        Rectangle()
-                            .fill(selectedColor)
-                            .frame(height: 120)
-                    }
-                    .frame(width: 240, height: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(selectedColor)
+                        .frame(width: 160, height: 220)
+                        .overlay(
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.03),
+                                            Color.white.opacity(0.05),
+                                            Color.white.opacity(0.03)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                        )
+                        .shadow(color: Color.black.opacity(0.25), radius: 3, x: 3, y: 3)
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                    Rectangle()
+                        .fill(selectedColor.opacity(0.85))
+                        .frame(width: 8, height: 220)
+                        .offset(x: -76, y: 0)
+                        .overlay(
+                            Rectangle()
+                                .fill(Color.black.opacity(0.15))
+                                .frame(width: 1)
+                                .offset(x: 4, y: 0),
+                            alignment: .leading
+                        )
+                    
+                    VStack(spacing: 0) {
                         Spacer()
+                            .frame(height: 70)
                         
                         Text(bookName.isEmpty ? "Book Title" : bookName)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white)
+                            .font(.system(size: 14, weight: .light))
+                            .foregroundColor(Color.white.opacity(0.8))
+                            .tracking(1)
+                            .multilineTextAlignment(.center)
                             .lineLimit(2)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 8)
-                            .frame(width: 240, alignment: .leading)
+                            .frame(width: 120)
                         
-                        HStack {
-                            Text("Memory Book")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.8))
-                            
-                            Spacer()
-                            
-                            Text(formattedDate())
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        Spacer()
+                  
                     }
-                    .frame(width: 240, height: 280, alignment: .bottom)
+                    .frame(width: 160, height: 220)
                 }
                 .padding(.vertical, 20)
                 
@@ -73,10 +85,10 @@ struct AddNewMemoryBookView: View {
                         Text("TITLE")
                             .font(.system(size: 10, weight: .medium))
                             .kerning(1.5)
-                            .foregroundColor(Color.black.opacity(0.2))
+                            .foregroundColor(Color.black.opacity(0.3))
                         
-                        TextField("Enter book name", text: $bookName)
-                            .font(.system(size: 16))
+                        TextField("Enter Book Name", text: $bookName)
+                            .font(.system(size: 16, weight: .light))
                             .foregroundColor(.black)
                             .padding(12)
                             .background(Color.white)
@@ -86,38 +98,51 @@ struct AddNewMemoryBookView: View {
                     }
                     
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("COLOR")
+                        Text("Book Cover")
                             .font(.system(size: 10, weight: .medium))
                             .kerning(1.5)
-                            .foregroundColor(Color.gray.opacity(0.8))
+                            .foregroundColor(Color.black.opacity(0.3))
                         
                         HStack(spacing: 15) {
                             ForEach([
-                                Color.blue,
-                                Color.red,
-                                Color.green,
-                                Color.orange,
-                                Color.purple,
-                                Color.pink
+                                Color(red: 0.2, green: 0.4, blue: 0.3),
+                                Color(red: 0.6, green: 0.25, blue: 0.3),
+                                Color(red: 0.25, green: 0.3, blue: 0.45),
+                                Color(red: 0.5, green: 0.4, blue: 0.3),
+                                Color(red: 0.2, green: 0.2, blue: 0.2),
+                                Color(red: 0.4, green: 0.15, blue: 0.15)
                             ], id: \.self) { color in
-                                Circle()
-                                    .fill(color)
-                                    .frame(width: 30, height: 30)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(color == selectedColor ? Color.white : Color.clear, lineWidth: 2)
-                                            .padding(3)
-                                    )
-                                    .shadow(color: Color.black.opacity(0.1), radius: 2, x: 0, y: 1)
-                                    .onTapGesture {
-                                        selectedColor = color
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 1)
+                                        .fill(color)
+                                        .frame(width: 30, height: 36)
+                                        .overlay(
+                                            Rectangle()
+                                                .fill(color.opacity(0.85))
+                                                .frame(width: 4)
+                                                .overlay(
+                                                    Rectangle()
+                                                        .fill(Color.black.opacity(0.15))
+                                                        .frame(width: 1)
+                                                ),
+                                            alignment: .leading
+                                        )
+                                        .shadow(color: Color.black.opacity(0.1), radius: 1, x: 1, y: 1)
+                                    
+                                    if color == selectedColor {
+                                        RoundedRectangle(cornerRadius: 1)
+                                            .stroke(Color.white, lineWidth: 1.5)
+                                            .frame(width: 30, height: 36)
                                     }
+                                }
+                                .onTapGesture {
+                                    selectedColor = color
+                                }
                             }
                             
-                            // Standard color picker as the last option
                             ColorPicker("", selection: $selectedColor)
                                 .labelsHidden()
-                                .frame(width: 30, height: 30)
+                                .frame(width: 30, height: 36)
                         }
                     }
                 }
@@ -125,13 +150,12 @@ struct AddNewMemoryBookView: View {
                 
                 Spacer()
                 
-                // Save button with minimal style
                 Button(action: saveBook) {
-                    Text("SAVE")
+                    Text("KAYDET")
                         .font(.system(size: 14, weight: .medium))
                         .kerning(1)
                         .padding()
-                        .frame(width: 200)
+                        .frame(width: 180)
                         .background(bookName.isEmpty ? Color.gray.opacity(0.3) : selectedColor)
                         .foregroundColor(.white)
                         .cornerRadius(4)
@@ -163,6 +187,7 @@ struct AddNewMemoryBookView: View {
         presentationMode.wrappedValue.dismiss()
     }
 }
+import SwiftUI
 
 import SwiftUI
 
@@ -183,11 +208,11 @@ struct CodableColor: Codable {
         }
     }
     
-    // Renkleri çok daha canlı hale getirmek için toSwiftUIColor fonksiyonunu güncelliyoruz
+    // Gerçekçi kitap renkleri oluşturmak için güncellenmiş fonksiyon
     func toSwiftUIColor() -> Color {
-        // RGB değerlerini HSV'ye çevirip saturasyonu ve parlaklığı artıran yardımcı fonksiyon
-        func enhanceColor(r: Double, g: Double, b: Double) -> (Double, Double, Double) {
-            // RGB to HSV dönüşümü
+        // Kitap benzeri renkler oluşturan yardımcı fonksiyon
+        func createBookColor(r: Double, g: Double, b: Double) -> (Double, Double, Double) {
+            // HSV dönüşümü
             let cmax = max(r, max(g, b))
             let cmin = min(r, min(g, b))
             let delta = cmax - cmin
@@ -209,12 +234,11 @@ struct CodableColor: Codable {
             let s: Double = cmax == 0 ? 0 : delta / cmax
             let v: Double = cmax
             
-            // Saturasyonu daha fazla artır (2.0 ile çarp)
-            let newS = min(s * 2.0, 1.0)
-            // Parlaklığı daha güçlü artır
-            let newV = min(v * 1.2, 1.0)
+            // Kitaplara özgü daha mat ve derin renkler
+            let newS = min(s * 0.95, 0.8)
+            let newV = min(v * 0.85, 0.75)
             
-            // HSV to RGB dönüşümü
+            // HSV'den RGB'ye dönüşüm
             let c = newV * newS
             let x = c * (1 - abs((h / 60).truncatingRemainder(dividingBy: 2) - 1))
             let m = newV - c
@@ -238,10 +262,10 @@ struct CodableColor: Codable {
             return (r1 + m, g1 + m, b1 + m)
         }
         
-        // Renkleri geliştir
-        let enhancedColors = enhanceColor(r: red, g: green, b: blue)
+        // Kitap benzeri renk oluştur
+        let bookColor = createBookColor(r: red, g: green, b: blue)
         
-        return Color(red: enhancedColors.0, green: enhancedColors.1, blue: enhancedColors.2)
+        return Color(red: bookColor.0, green: bookColor.1, blue: bookColor.2)
     }
 }
 
@@ -257,80 +281,92 @@ struct BookView: View {
         return max(minScale, maxScale - abs(offset) / 1200)
     }
     
-    func formattedDate() -> String {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "dd.MM.yyyy"
-        return dateFormatter.string(from: Date())
+    var shadowOffset: CGFloat {
+        return max(3, min(8, 4 + abs(offset) / 150))
     }
     
     var body: some View {
-        // The ZStack is now INSIDE the NavigationLink
         ZStack {
-            // This is now a regular button design that's part of the navigation link
-            VStack(spacing: 16) {
+            VStack(spacing: 0) {
                 ZStack {
-                    // Base card with subtle shadow
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(red: 0.98, green: 0.97, blue: 0.95))
-                        .frame(width: 240, height: 280)
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Color(red: 0.98, green: 0.96, blue: 0.94))
+                        .frame(width: 220, height: 300)
+                        .offset(x: -2, y: -2)
                     
-                    VStack {
-                        Spacer()
-                        // Vibrant gradient for the color section
-                        LinearGradient(
-                            gradient: Gradient(colors: [
-                                book.color.toSwiftUIColor(),
-                                book.color.toSwiftUIColor()
-                            ]),
-                            startPoint: .bottom,
-                            endPoint: .top
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(book.color.toSwiftUIColor())
+                        .frame(width: 220, height: 300)
+                        .overlay(
+                            Rectangle()
+                                .fill(
+                                    LinearGradient(
+                                        gradient: Gradient(colors: [
+                                            Color.white.opacity(0.03),
+                                            Color.white.opacity(0.05),
+                                            Color.white.opacity(0.03)
+                                        ]),
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
                         )
                         .overlay(
-                            LinearGradient(
-                                gradient: Gradient(colors: [
-                                    Color.clear
-                                ]),
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
+                            VStack {
+                                Spacer()
+                                    .frame(height: 20)
+                                
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.04))
+                                    .frame(height: 0.5)
+                                
+                                Spacer()
+                                    .frame(height: 260)
+                                
+                                Rectangle()
+                                    .fill(Color.black.opacity(0.05))
+                                    .frame(height: 0.5)
+                                
+                                Spacer()
+                                    .frame(height: 20)
+                            }
                         )
-                        .frame(height: 100)
-                    }
-                    .frame(width: 240, height: 280)
-                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                    .shadow(color: Color.black.opacity(0.45), radius: 4, x: shadowOffset, y: shadowOffset)
+                        .shadow(color: Color.black.opacity(0.2), radius: 10, x: shadowOffset * 1.5, y: shadowOffset * 1.5)
                     
-                    VStack(alignment: .leading, spacing: 4) {
+                    Rectangle()
+                        .fill(book.color.toSwiftUIColor().opacity(0.85))
+                        .frame(width: 12, height: 300)
+                        .offset(x: -104, y: 0)
+                        .overlay(
+                            Rectangle()
+                                .fill(Color.black.opacity(0.15))
+                                .frame(width: 1.5)
+                                .offset(x: 6, y: 0),
+                            alignment: .leading
+                        )
+                    
+                    Rectangle()
+                        .fill(Color.black.opacity(0.1))
+                        .frame(width: 3, height: 300)
+                        .offset(x: -98, y: 0)
+                    
+                    VStack(spacing: 0) {
                         Spacer()
-                        
+                            .frame(height: 100)
+                
                         Text(book.name)
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .light))
+                            .foregroundColor(Color.white.opacity(0.8))
+                            .tracking(1)
+                            .multilineTextAlignment(.center)
                             .lineLimit(2)
-                            .padding(.horizontal, 20)
-                            .padding(.bottom, 8)
-                            .frame(width: 240, alignment: .leading)
-                            // Add shadow for better text visibility
-                            .shadow(color: Color.black.opacity(0.5), radius: 2, x: 0, y: 1)
+                            .frame(width: 180)
                         
-                        HStack {
-                            Text("Memory Book")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.8))
-                                // Add shadow for better text visibility
-                                .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
-                            
-                            Spacer()
-                            
-                            Text("\(formattedDate())")
-                                .font(.system(size: 12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.8))
-                                // Add shadow for better text visibility
-                                .shadow(color: Color.black.opacity(0.3), radius: 1, x: 0, y: 1)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        Spacer()
+
                     }
-                    .frame(width: 240, height: 280, alignment: .bottom)
+                    .frame(width: 220, height: 300)
                 }
             }
             .rotation3DEffect(
@@ -340,7 +376,6 @@ struct BookView: View {
             )
             .scaleEffect(scale)
             
-            // Delete button - only shown in edit mode
             if isEditMode {
                 VStack {
                     HStack {
@@ -348,21 +383,21 @@ struct BookView: View {
                         
                         Button(action: onDelete) {
                             Circle()
-                                .stroke(Color.black.opacity(0.4), lineWidth: 1)
-                                .frame(width: 22, height: 22)
-                                .background(Circle().fill(Color.white.opacity(0.6)))
+                                .fill(Color.white)
+                                .frame(width: 24, height: 24)
+                                .shadow(color: Color.black.opacity(0.2), radius: 2, x: 0, y: 1)
                                 .overlay(
                                     Image(systemName: "minus")
-                                        .font(.system(size: 10, weight: .medium))
+                                        .font(.system(size: 12, weight: .bold))
                                         .foregroundColor(Color.black.opacity(0.7))
                                 )
                         }
-                        .offset(x: 10, y: -10)
+                        .offset(x: 12, y: -12)
                     }
                     
                     Spacer()
                 }
-                .frame(width: 240, height: 280)
+                .frame(width: 220, height: 300)
             }
         }
     }
@@ -378,22 +413,19 @@ struct FriendsView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background - soft beige
-                Color(red: 0.94, green: 0.92, blue: 0.89)
+                Color(red: 0.96, green: 0.95, blue: 0.93)
                     .edgesIgnoringSafeArea(.all)
                 
                 VStack(spacing: 0) {
-                    // Header
                     VStack(spacing: 0) {
                         HStack {
                             Text("Memory Library")
-                                .font(.system(size: 18, weight: .regular))
+                                .font(.system(size: 20, weight: .light))
                                 .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                                .tracking(1)
+                                .tracking(2)
                             
                             Spacer()
                             
-                            // Edit Button - shown only when books exist
                             if !books.isEmpty {
                                 Button(action: {
                                     withAnimation(.easeInOut(duration: 0.3)) {
@@ -402,9 +434,9 @@ struct FriendsView: View {
                                     }
                                 }) {
                                     Text(isEditMode ? "Done" : "Edit")
-                                        .font(.system(size: 14, weight: .regular))
+                                        .font(.system(size: 14, weight: .light))
                                         .foregroundColor(Color(red: 0.4, green: 0.4, blue: 0.4))
-                                        .tracking(0.5)
+                                        .tracking(1)
                                 }
                             }
                         }
@@ -413,15 +445,14 @@ struct FriendsView: View {
                         .padding(.bottom, 40)
                     }
                     
-                    // Main Content
                     ScrollView {
                         VStack(spacing: 25) {
                             if books.isEmpty {
                                 Spacer(minLength: 100)
                                 
                                 VStack(spacing: 20) {
-                                    Text("No memories")
-                                        .font(.system(size: 16, weight: .regular))
+                                    Text("Kütüphaneniz boş")
+                                        .font(.system(size: 16, weight: .light))
                                         .foregroundColor(Color(red: 0.5, green: 0.5, blue: 0.5))
                                         .tracking(1)
                                 }
@@ -429,13 +460,11 @@ struct FriendsView: View {
                                 
                                 Spacer(minLength: 100)
                             } else {
-                                // Books ScrollView
                                 GeometryReader { geometry in
                                     ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 25) {
-                                            // Left padding
+                                        HStack(spacing: 35) {
                                             Spacer()
-                                                .frame(width: geometry.size.width / 2 - 120)
+                                                .frame(width: geometry.size.width / 2 - 110)
                                             
                                             ForEach(books) { book in
                                                 GeometryReader { itemGeometry in
@@ -443,7 +472,6 @@ struct FriendsView: View {
                                                     let screenMidX = UIScreen.main.bounds.width / 2
                                                     let offsetFromCenter = midX - screenMidX
                                                     
-                                                    // In edit mode, don't use NavigationLink
                                                     if isEditMode {
                                                         BookView(
                                                             book: book,
@@ -456,7 +484,6 @@ struct FriendsView: View {
                                                             }
                                                         )
                                                     } else {
-                                                        // When not in edit mode, use NavigationLink
                                                         NavigationLink(destination: BookDetailView(book: book)) {
                                                             BookView(
                                                                 book: book,
@@ -472,70 +499,51 @@ struct FriendsView: View {
                                                         .buttonStyle(PlainButtonStyle())
                                                     }
                                                 }
-                                                .frame(width: 240, height: 320)
+                                                .frame(width: 220, height: 340)
                                             }
                                             
-                                            // Right padding
                                             Spacer()
-                                                .frame(width: geometry.size.width / 2 - 120)
+                                                .frame(width: geometry.size.width / 2 - 110)
                                         }
                                         .padding(.vertical, 30)
                                     }
                                 }
-                                .frame(height: 350)
+                                .frame(height: 380)
                                 .padding(.top, 20)
                             }
                         }
                     }
                     
-                    // Footer with separated buttons
                     VStack {
                         Spacer()
                         
                         HStack {
                             Spacer()
                             
-                            // Add Memory button - always shown with the same text
                             Button(action: {
                                 if !isEditMode {
                                     isAddFriendModalPresented = true
                                     hapticFeedback()
                                 }
                             }) {
-                                Text("Add Memory")
-                                    .font(.system(size: 14, weight: .regular))
-                                    .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-                                    .tracking(0.5)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 8)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .stroke(Color(red: 0.3, green: 0.3, blue: 0.3), lineWidth: 0.5)
-                                    )
+                                HStack(spacing: 8) {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 14, weight: .light))
+                                    
+                                    Text("Add Memory")
+                                        .font(.system(size: 14, weight: .light))
+                                        .tracking(0.5)
+                                }
+                                .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20)
+                                        .stroke(Color(red: 0.3, green: 0.3, blue: 0.3), lineWidth: 0.5)
+                                )
                             }
-                            .disabled(isEditMode) // Disable when in edit mode
-                            .opacity(isEditMode ? 0.5 : 1.0) // Visually indicate disabled state
-                            
-//                            // Cancel Edit button - only shown in edit mode
-//                            if isEditMode {
-//                                Button(action: {
-//                                    withAnimation {
-//                                        isEditMode = false
-//                                    }
-//                                }) {
-//                                    Text("Cancel")
-//                                        .font(.system(size: 14, weight: .regular))
-//                                        .foregroundColor(Color(red: 0.3, green: 0.3, blue: 0.3))
-//                                        .tracking(0.5)
-//                                        .padding(.horizontal, 16)
-//                                        .padding(.vertical, 8)
-//                                        .overlay(
-//                                            RoundedRectangle(cornerRadius: 4)
-//                                                .stroke(Color(red: 0.3, green: 0.3, blue: 0.3), lineWidth: 0.5)
-//                                        )
-//                                }
-//                                .padding(.leading, 12)
-//                            }
+                            .disabled(isEditMode)
+                            .opacity(isEditMode ? 0.5 : 1.0)
                         }
                         .padding(.trailing, 30)
                         .padding(.bottom, 40)
@@ -544,12 +552,12 @@ struct FriendsView: View {
             }
             .alert(isPresented: $isShowingDeleteAlert) {
                 Alert(
-                    title: Text("Delete Memory"),
-                    message: Text("Are you sure you want to delete this memory?"),
+                    title: Text("Delete"),
+                    message: Text("Are you sure you want to delete this book?"),
                     primaryButton: .destructive(Text("Delete")) {
                         deleteBook()
                     },
-                    secondaryButton: .cancel()
+                    secondaryButton: .cancel(Text("Cancel"))
                 )
             }
             .sheet(isPresented: $isAddFriendModalPresented) {
@@ -574,7 +582,6 @@ struct FriendsView: View {
                 books.remove(at: index)
                 saveBooks()
                 
-                // If we deleted all books, exit edit mode
                 if books.isEmpty {
                     isEditMode = false
                 }
@@ -607,4 +614,3 @@ struct MemoryBook: Identifiable, Codable {
     var name: String
     var color: CodableColor
 }
-
