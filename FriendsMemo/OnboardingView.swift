@@ -79,7 +79,7 @@ struct OnboardingView: View {
                             // Image with card-like container (matching your app's card style)
                             ZStack {
                                 Rectangle()
-                                    .fill(Color.white)
+                                    .fill(Color.clear)
                                     .frame(width: 350, height: 420)
                                     .cornerRadius(4)
                                     .shadow(color: Color.black.opacity(0.08), radius: 10, x: 0, y: 4)
@@ -92,20 +92,6 @@ struct OnboardingView: View {
                                     .frame(width: 280, height: 280)
                                     .padding(.bottom, 60)
                                 
-                                // Page number at bottom corner
-                                VStack {
-                                    Spacer()
-                                    HStack {
-                                        Text(String(format: NSLocalizedString("Page %@", comment: "Page number"), "\(index + 1)"))
-                                            .font(.system(size: 12, weight: .regular))
-                                            .foregroundColor(.white)
-                                        
-                                        Spacer()
-                                    }
-                                    .padding(.horizontal, 20)
-                                    .padding(.bottom, 2)
-                                }
-                                .frame(width: 350, height: 420)
                             }
                             
                             // Title and description (matching your app's typography)
@@ -143,7 +129,6 @@ struct OnboardingView: View {
                 }
                 .padding(.vertical, 20)
                 
-                // Continue/Get Started button (matching your app's button style)
                 Button(action: {
                     if currentPage == onboardingPages.count - 1 {
                         hasSeenOnboarding = true
@@ -159,7 +144,8 @@ struct OnboardingView: View {
                         .foregroundColor(.white)
                         .frame(width: 200)
                         .padding()
-                        .background(pageColors[currentPage])
+                        .background(Color.blue) // Sabit renk olarak mavi
+                        // veya istediğiniz başka bir renk: Color(red: 0.2, green: 0.5, blue: 0.8)
                         .cornerRadius(4)
                 }
                 .padding(.bottom, 40)

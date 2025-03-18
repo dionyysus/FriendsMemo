@@ -557,7 +557,7 @@ struct FriendsView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showLanguageSettings) { 
+            .sheet(isPresented: $showLanguageSettings) {
                           LanguageSettingsView()
                       }
             .alert(isPresented: $isShowingDeleteAlert) {
